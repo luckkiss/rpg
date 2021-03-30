@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+// 玩家消息
+
+// 基础信息
+message player_c_info {// 1301
+}
+
+message player_s_info {// 1302
+    uint32 id = 1;
+    string name = 2;
+}
+
+

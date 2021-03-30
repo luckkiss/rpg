@@ -1,0 +1,24 @@
+%% rebar3 escriptize&"_build/default/bin/virtue" compile ./xlsx ./tmp ./tmp
+%% rebar3 escriptize&"_build/default/bin/virtue" compile_change ./xlsx ./tmp ./tmp
+%% rebar3 escriptize&"_build/default/bin/virtue" clean ./xlsx ../src/data ../include
+%% rebar3 escriptize&"_build/default/bin/virtue" template xlsx/T测试_test.xlsx goods[ ./tmp ./tmp]
+%% rebar3 escriptize&"_build/default/bin/virtue" template_hrl xlsx/T测试_test.xlsx goods[ ./tmp]
+
+[
+    {rebar_packages_cdn, "https://hexpm.upyun.com"},
+    {erl_opts, [no_debug_info, {i, "_build/default/lib/ptolemaios_lib/include"}]},
+    {deps, [
+        {jsx, "3.0.0"},
+        {ptolemaios_lib, ".*", {git, "https://github.com/DominicGame/ptolemaios_lib.git", {tag, "master"}}}
+    ]},
+
+    {escript_incl_apps, [ptolemaios_lib, virtue, jsx]},
+    {escript_main_app, virtue},
+    {escript_name, virtue},
+    {escript_emu_args, "%%! +sbtu +A1\n"},
+
+    %% Profiles
+    {profiles, [{test,
+        [{erl_opts, [debug_info]}]
+    }]}
+].

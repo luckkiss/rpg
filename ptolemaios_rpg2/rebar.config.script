@@ -1,0 +1,117 @@
+%% https://github.com/erlang/rebar3/blob/master/rebar.config.sample
+
+Millisecond = erlang:system_time(millisecond),
+MillisecondStr = integer_to_list(Millisecond),
+
+[
+    %% 这个东西有点迷, 有时候可以有时候不可以
+    %% HEX_CDN=https://hexpm.upyun.com
+    {rebar_packages_cdn, "https://hexpm.upyun.com"},
+
+    {erl_opts, [
+        debug_info,
+        {i, "include"},
+        {i, "include/proto"},
+        {i, "./_build/default/plugins/gpb/include"},
+        {i, "_build/default/lib/ptolemaios_lib/include"}
+    ]},
+
+    {deps, [
+        {ranch, "2.0.0"},
+        {enif_protobuf, ".*", {git, "https://github.com/DominicGame/enif_protobuf.git", {tag, "master"}}},
+        {ptolemaios_lib, ".*", {git, "https://github.com/DominicGame/ptolemaios_lib.git", {tag, "master"}}}
+    ]},
+
+    {overrides, [
+        %% rebar_ct在hex上面都搜不到了, 先屏蔽掉
+        {override, mongodb, [{plugins, []}]},
+
+        %% 全都换成这个源
+        {override, [{rebar_packages_cdn, "https://hexpm.upyun.com"}]}
+    ]},
+
+    {relx, [
+        %% 第一, 对于一个上线的项目, 只会更改项目的app, 如果要改其他app那必须跟着一个'大版本'走才合理
+        %% 第二, 实际中不同的version使用时间, 文件夹, svn路径等区分, 甚至不需要这个区分
+        %% 第三, rebar3对window支持不太好, 还是自己得写脚本执行热更才行
+        %% 所以, app的版本和release的版本是不需要改变的
+        %% 所以, release的名字和版本保持默认就行, release脚本会直接写死
+        {release, {ptolemaios, "0.1.0"}, [ptolemaios, sasl]},
+
+        {sys_config, "./config/sys.config"},
+        {vm_args, "./config/vm.args"},
+
+        {dev_mode, true},
+        {include_erts, false},
+
+        {extended_start_script, true}
+    ]},
+
+    %% 带名字的节点
+    %% rebar3 shell --name ptolemaios@127.0.0.1 --setcookie ptolemaios_cookie
+    %% 性能测试(perf_*)+设置核心数
+    %% rebar3 compile & erl +sct L0-0T0-0C0-0 -pa _build/default/lib/ptolemaios/ebin
+    {shell, [
+        {config, "config/sys.config"},
+        {apps, [ptolemaios]}
+    ]},
+
+    {plugins, [
+        {rebar3_gpb_plugin, "2.15.0"},
+        {pc, ".*", {git, "https://github.com/DominicGame/port_compiler.git", {tag, "master"}}}
+    ]},
+
+    %% 钩子escript
+    %% clean分两步Verifying dependencies和Cleaning out ptolemaios, 所以每个脚本都会触发两次
+    %% 按照顺序 ptolemaios_pre -> ptolemaios_pre -> ptolemaios_post -> ptolemaios_post
+    %% 其他命令可能也会有类似的设定, 所以传入一个时间戳标识保证一次命令只执行一次脚本
+    %% 在clean/0和compile/0方法添加代码即可
+    {pre_hooks, [
+        {compile, "escript hooks_escript/ptolemaios_pre_escript.erl " ++ MillisecondStr ++ " compile"},
+        {clean, "escript hooks_escript/ptolemaios_pre_escript.erl " ++ MillisecondStr ++ " clean"}
+    ]},
+
+    {post_hooks, [
+        {compile, "escript hooks_escript/ptolemaios_post_escript.erl " ++ MillisecondStr ++ " compile"},
+        {clean, "escript hooks_escript/ptolemaios_post_escript.erl " ++ MillisecondStr ++ " clean"}
+    ]}]
+    ++
+    case os:type() of
+        {win32, _} ->
+            %% windows本地, 可以兼容多版本erlang
+            %% 可能出现无法删除erts文件夹, 需要先把empd关掉
+            [{profiles, [{prod, [{relx, [{dev_mode, false}, {include_erts, true}]}]}]}];
+        _ ->
+            %% 打包erts会导致epmd固定使用'第一个启动的包'里的epmd开启(如果未开启)
+            %% 其他包也会依赖该epmd, 导致无法删除'第一个启动的包'
+            %% 实际中单个游戏本身也不会出现依赖多版本erl的情况
+            %% 所以生产环境不打包erts, 使用系统内的erl
+            [{profiles, [{prod, [{relx, [{dev_mode, false}, {include_erts, false}]}]}]}]
+    end
+    ++
+    [{provider_hooks, [
+        {pre, [
+            {compile, {protobuf, compile}},
+            {clean, {protobuf, clean}},
+            {compile, {pc, compile}},
+            {clean, {pc, clean}}
+        ]}
+    ]},
+
+    %% 同时生成, {o_erl}/../proto_mapping.erl和{o_erl}/../handle/*_handle.erl
+    {gpb_opts, [
+        %% 相对ptolemaios的路径
+        {i, "proto"},
+        {module_name_suffix, "_pb"},
+        {o_erl, "src/proto/pb"},
+        {o_hrl, "include/proto"},
+        {strings_as_binaries, true},
+        type_specs
+    ]},
+
+    {port_specs, [
+        {"priv/template_enif.so", [
+            "c_src/template_enif.c"
+        ]}
+    ]}
+].

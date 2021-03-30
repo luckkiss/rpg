@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+// 战斗
+
+message battle_p_unit_info{
+    uint32 id = 1;
+    string name = 2;
+    uint32 career = 3;
+    int32 x = 4;
+    int32 y = 5;
+    int32 face = 6;
+}
+
+// 全部unit信息
+message battle_c_all_unit{// 1400
+}
+
+message battle_s_all_unit{// 1401
+    repeated battle_p_unit_info unit_list = 1;
+}
+
+// 增加/更新unit
+message  battle_s_update_unit{// 1403
+    battle_p_unit_info unit = 1;
+}
+
+// 减少unit
+message  battle_s_del_unit{// 1405
+    uint32 id = 1;
+}
+
+// 放技能
+message battle_c_skill{// 1408
+    uint32 skill_id = 1;
+    repeated uint32  hit_list = 2;
+}
+
+message battle_s_skill{// 1409
+    uint32 skill_id = 1;
+    uint32 id = 2;
+}
+
+// 技能命中
+message  battle_s_hit{// 1410
+    uint32 hurt = 1;
+    uint32 id = 2;
+}
+
+// 移动
+message battle_c_move_start{// 1411
+    int32 face = 1;
+}
+
+message battle_s_move_start{// 1412
+    uint32 id = 1;
+    int32 face = 2;
+    int32 x = 3;
+    int32 y = 4;
+}
+
+message battle_c_move_end{// 1413
+}
+
+message battle_s_move_end{// 1414
+    uint32 id = 1;
+    int32 face = 2;
+    int32 x = 3;
+    int32 y = 4;
+}
+
+
