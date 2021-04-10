@@ -7,5 +7,102 @@
 
 -define(battle_14_pb_gpb_version, "4.13.0").
 
+-ifndef('BATTLE_P_UNIT_INFO_PB_H').
+-define('BATTLE_P_UNIT_INFO_PB_H', true).
+-record(battle_p_unit_info,
+        {id = 0                 :: non_neg_integer() | undefined, % = 1, 32 bits
+         name = <<>>            :: iodata() | undefined, % = 2
+         career = 0             :: non_neg_integer() | undefined, % = 3, 32 bits
+         x = 0                  :: integer() | undefined, % = 4, 32 bits
+         y = 0                  :: integer() | undefined, % = 5, 32 bits
+         face = 0               :: integer() | undefined % = 6, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_C_ALL_UNIT_PB_H').
+-define('BATTLE_C_ALL_UNIT_PB_H', true).
+-record(battle_c_all_unit,
+        {
+        }).
+-endif.
+
+-ifndef('BATTLE_S_ALL_UNIT_PB_H').
+-define('BATTLE_S_ALL_UNIT_PB_H', true).
+-record(battle_s_all_unit,
+        {unit_list = []         :: [battle_14_pb:battle_p_unit_info()] | undefined % = 1
+        }).
+-endif.
+
+-ifndef('BATTLE_S_UPDATE_UNIT_PB_H').
+-define('BATTLE_S_UPDATE_UNIT_PB_H', true).
+-record(battle_s_update_unit,
+        {unit = undefined       :: battle_14_pb:battle_p_unit_info() | undefined % = 1
+        }).
+-endif.
+
+-ifndef('BATTLE_S_DEL_UNIT_PB_H').
+-define('BATTLE_S_DEL_UNIT_PB_H', true).
+-record(battle_s_del_unit,
+        {id = 0                 :: non_neg_integer() | undefined % = 1, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_C_SKILL_PB_H').
+-define('BATTLE_C_SKILL_PB_H', true).
+-record(battle_c_skill,
+        {skill_id = 0           :: non_neg_integer() | undefined, % = 1, 32 bits
+         hit_list = []          :: [non_neg_integer()] | undefined % = 2, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_S_SKILL_PB_H').
+-define('BATTLE_S_SKILL_PB_H', true).
+-record(battle_s_skill,
+        {skill_id = 0           :: non_neg_integer() | undefined, % = 1, 32 bits
+         id = 0                 :: non_neg_integer() | undefined % = 2, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_S_HIT_PB_H').
+-define('BATTLE_S_HIT_PB_H', true).
+-record(battle_s_hit,
+        {hurt = 0               :: non_neg_integer() | undefined, % = 1, 32 bits
+         id = 0                 :: non_neg_integer() | undefined % = 2, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_C_MOVE_START_PB_H').
+-define('BATTLE_C_MOVE_START_PB_H', true).
+-record(battle_c_move_start,
+        {face = 0               :: integer() | undefined % = 1, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_S_MOVE_START_PB_H').
+-define('BATTLE_S_MOVE_START_PB_H', true).
+-record(battle_s_move_start,
+        {id = 0                 :: non_neg_integer() | undefined, % = 1, 32 bits
+         face = 0               :: integer() | undefined, % = 2, 32 bits
+         x = 0                  :: integer() | undefined, % = 3, 32 bits
+         y = 0                  :: integer() | undefined % = 4, 32 bits
+        }).
+-endif.
+
+-ifndef('BATTLE_C_MOVE_END_PB_H').
+-define('BATTLE_C_MOVE_END_PB_H', true).
+-record(battle_c_move_end,
+        {
+        }).
+-endif.
+
+-ifndef('BATTLE_S_MOVE_END_PB_H').
+-define('BATTLE_S_MOVE_END_PB_H', true).
+-record(battle_s_move_end,
+        {id = 0                 :: non_neg_integer() | undefined, % = 1, 32 bits
+         face = 0               :: integer() | undefined, % = 2, 32 bits
+         x = 0                  :: integer() | undefined, % = 3, 32 bits
+         y = 0                  :: integer() | undefined % = 4, 32 bits
+        }).
+-endif.
 
 -endif.

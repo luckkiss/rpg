@@ -18,7 +18,8 @@
 -define('GATEWAY_P_ROLE_INFO_PB_H', true).
 -record(gateway_p_role_info,
         {id = 0                 :: non_neg_integer() | undefined, % = 1, 32 bits
-         name = <<>>            :: iodata() | undefined % = 2
+         name = <<>>            :: iodata() | undefined, % = 2
+         career = 0             :: non_neg_integer() | undefined % = 3, 32 bits
         }).
 -endif.
 
@@ -47,7 +48,8 @@
 -ifndef('GATEWAY_C_CREATE_ROLE_PB_H').
 -define('GATEWAY_C_CREATE_ROLE_PB_H', true).
 -record(gateway_c_create_role,
-        {name = <<>>            :: iodata() | undefined % = 1
+        {name = <<>>            :: iodata() | undefined, % = 1
+         career = 0             :: non_neg_integer() | undefined % = 2, 32 bits
         }).
 -endif.
 
@@ -68,6 +70,50 @@
 -ifndef('GATEWAY_S_HEART_PB_H').
 -define('GATEWAY_S_HEART_PB_H', true).
 -record(gateway_s_heart,
+        {
+        }).
+-endif.
+
+-ifndef('GATEWAY_C_WARP_PB_H').
+-define('GATEWAY_C_WARP_PB_H', true).
+-record(gateway_c_warp,
+        {proto = 0              :: non_neg_integer() | undefined, % = 1, 32 bits
+         data = <<>>            :: iodata() | undefined % = 2
+        }).
+-endif.
+
+-ifndef('GATEWAY_S_WARP_PB_H').
+-define('GATEWAY_S_WARP_PB_H', true).
+-record(gateway_s_warp,
+        {proto = 0              :: non_neg_integer() | undefined, % = 1, 32 bits
+         data = <<>>            :: iodata() | undefined % = 2
+        }).
+-endif.
+
+-ifndef('GATEWAY_C_EXIT_ROLE_PB_H').
+-define('GATEWAY_C_EXIT_ROLE_PB_H', true).
+-record(gateway_c_exit_role,
+        {
+        }).
+-endif.
+
+-ifndef('GATEWAY_S_EXIT_ROLE_PB_H').
+-define('GATEWAY_S_EXIT_ROLE_PB_H', true).
+-record(gateway_s_exit_role,
+        {
+        }).
+-endif.
+
+-ifndef('GATEWAY_C_EXIT_ACCOUNT_PB_H').
+-define('GATEWAY_C_EXIT_ACCOUNT_PB_H', true).
+-record(gateway_c_exit_account,
+        {
+        }).
+-endif.
+
+-ifndef('GATEWAY_S_EXIT_ACCOUNT_PB_H').
+-define('GATEWAY_S_EXIT_ACCOUNT_PB_H', true).
+-record(gateway_s_exit_account,
         {
         }).
 -endif.

@@ -70,16 +70,28 @@
 
 -type gateway_s_heart() :: #gateway_s_heart{}.
 
--export_type(['gateway_c_login'/0, 'gateway_p_role_info'/0, 'gateway_s_login'/0, 'gateway_c_select_role'/0, 'gateway_s_select_role'/0, 'gateway_c_create_role'/0, 'gateway_s_create_role'/0, 'gateway_c_heart'/0, 'gateway_s_heart'/0]).
+-type gateway_c_warp() :: #gateway_c_warp{}.
 
--spec encode_msg(#gateway_c_login{} | #gateway_p_role_info{} | #gateway_s_login{} | #gateway_c_select_role{} | #gateway_s_select_role{} | #gateway_c_create_role{} | #gateway_s_create_role{} | #gateway_c_heart{} | #gateway_s_heart{}) -> binary().
+-type gateway_s_warp() :: #gateway_s_warp{}.
+
+-type gateway_c_exit_role() :: #gateway_c_exit_role{}.
+
+-type gateway_s_exit_role() :: #gateway_s_exit_role{}.
+
+-type gateway_c_exit_account() :: #gateway_c_exit_account{}.
+
+-type gateway_s_exit_account() :: #gateway_s_exit_account{}.
+
+-export_type(['gateway_c_login'/0, 'gateway_p_role_info'/0, 'gateway_s_login'/0, 'gateway_c_select_role'/0, 'gateway_s_select_role'/0, 'gateway_c_create_role'/0, 'gateway_s_create_role'/0, 'gateway_c_heart'/0, 'gateway_s_heart'/0, 'gateway_c_warp'/0, 'gateway_s_warp'/0, 'gateway_c_exit_role'/0, 'gateway_s_exit_role'/0, 'gateway_c_exit_account'/0, 'gateway_s_exit_account'/0]).
+
+-spec encode_msg(#gateway_c_login{} | #gateway_p_role_info{} | #gateway_s_login{} | #gateway_c_select_role{} | #gateway_s_select_role{} | #gateway_c_create_role{} | #gateway_s_create_role{} | #gateway_c_heart{} | #gateway_s_heart{} | #gateway_c_warp{} | #gateway_s_warp{} | #gateway_c_exit_role{} | #gateway_s_exit_role{} | #gateway_c_exit_account{} | #gateway_s_exit_account{}) -> binary().
 encode_msg(Msg) when tuple_size(Msg) >= 1 -> encode_msg(Msg, element(1, Msg), []).
 
--spec encode_msg(#gateway_c_login{} | #gateway_p_role_info{} | #gateway_s_login{} | #gateway_c_select_role{} | #gateway_s_select_role{} | #gateway_c_create_role{} | #gateway_s_create_role{} | #gateway_c_heart{} | #gateway_s_heart{}, atom() | list()) -> binary().
+-spec encode_msg(#gateway_c_login{} | #gateway_p_role_info{} | #gateway_s_login{} | #gateway_c_select_role{} | #gateway_s_select_role{} | #gateway_c_create_role{} | #gateway_s_create_role{} | #gateway_c_heart{} | #gateway_s_heart{} | #gateway_c_warp{} | #gateway_s_warp{} | #gateway_c_exit_role{} | #gateway_s_exit_role{} | #gateway_c_exit_account{} | #gateway_s_exit_account{}, atom() | list()) -> binary().
 encode_msg(Msg, MsgName) when is_atom(MsgName) -> encode_msg(Msg, MsgName, []);
 encode_msg(Msg, Opts) when tuple_size(Msg) >= 1, is_list(Opts) -> encode_msg(Msg, element(1, Msg), Opts).
 
--spec encode_msg(#gateway_c_login{} | #gateway_p_role_info{} | #gateway_s_login{} | #gateway_c_select_role{} | #gateway_s_select_role{} | #gateway_c_create_role{} | #gateway_s_create_role{} | #gateway_c_heart{} | #gateway_s_heart{}, atom(), list()) -> binary().
+-spec encode_msg(#gateway_c_login{} | #gateway_p_role_info{} | #gateway_s_login{} | #gateway_c_select_role{} | #gateway_s_select_role{} | #gateway_c_create_role{} | #gateway_s_create_role{} | #gateway_c_heart{} | #gateway_s_heart{} | #gateway_c_warp{} | #gateway_s_warp{} | #gateway_c_exit_role{} | #gateway_s_exit_role{} | #gateway_c_exit_account{} | #gateway_s_exit_account{}, atom(), list()) -> binary().
 encode_msg(Msg, MsgName, Opts) ->
     case proplists:get_bool(verify, Opts) of
         true -> verify_msg(Msg, MsgName, Opts);
@@ -95,7 +107,13 @@ encode_msg(Msg, MsgName, Opts) ->
         gateway_c_create_role -> encode_msg_gateway_c_create_role(id(Msg, TrUserData), TrUserData);
         gateway_s_create_role -> encode_msg_gateway_s_create_role(id(Msg, TrUserData), TrUserData);
         gateway_c_heart -> encode_msg_gateway_c_heart(id(Msg, TrUserData), TrUserData);
-        gateway_s_heart -> encode_msg_gateway_s_heart(id(Msg, TrUserData), TrUserData)
+        gateway_s_heart -> encode_msg_gateway_s_heart(id(Msg, TrUserData), TrUserData);
+        gateway_c_warp -> encode_msg_gateway_c_warp(id(Msg, TrUserData), TrUserData);
+        gateway_s_warp -> encode_msg_gateway_s_warp(id(Msg, TrUserData), TrUserData);
+        gateway_c_exit_role -> encode_msg_gateway_c_exit_role(id(Msg, TrUserData), TrUserData);
+        gateway_s_exit_role -> encode_msg_gateway_s_exit_role(id(Msg, TrUserData), TrUserData);
+        gateway_c_exit_account -> encode_msg_gateway_c_exit_account(id(Msg, TrUserData), TrUserData);
+        gateway_s_exit_account -> encode_msg_gateway_s_exit_account(id(Msg, TrUserData), TrUserData)
     end.
 
 
@@ -117,7 +135,7 @@ encode_msg_gateway_c_login(#gateway_c_login{account = F1}, Bin, TrUserData) ->
 encode_msg_gateway_p_role_info(Msg, TrUserData) -> encode_msg_gateway_p_role_info(Msg, <<>>, TrUserData).
 
 
-encode_msg_gateway_p_role_info(#gateway_p_role_info{id = F1, name = F2}, Bin, TrUserData) ->
+encode_msg_gateway_p_role_info(#gateway_p_role_info{id = F1, name = F2, career = F3}, Bin, TrUserData) ->
     B1 = if F1 == undefined -> Bin;
             true ->
                 begin
@@ -127,13 +145,22 @@ encode_msg_gateway_p_role_info(#gateway_p_role_info{id = F1, name = F2}, Bin, Tr
                     end
                 end
          end,
-    if F2 == undefined -> B1;
+    B2 = if F2 == undefined -> B1;
+            true ->
+                begin
+                    TrF2 = id(F2, TrUserData),
+                    case is_empty_string(TrF2) of
+                        true -> B1;
+                        false -> e_type_string(TrF2, <<B1/binary, 18>>, TrUserData)
+                    end
+                end
+         end,
+    if F3 == undefined -> B2;
        true ->
            begin
-               TrF2 = id(F2, TrUserData),
-               case is_empty_string(TrF2) of
-                   true -> B1;
-                   false -> e_type_string(TrF2, <<B1/binary, 18>>, TrUserData)
+               TrF3 = id(F3, TrUserData),
+               if TrF3 =:= 0 -> B2;
+                  true -> e_varint(TrF3, <<B2/binary, 24>>, TrUserData)
                end
            end
     end.
@@ -190,14 +217,23 @@ encode_msg_gateway_s_select_role(#gateway_s_select_role{id = F1}, Bin, TrUserDat
 encode_msg_gateway_c_create_role(Msg, TrUserData) -> encode_msg_gateway_c_create_role(Msg, <<>>, TrUserData).
 
 
-encode_msg_gateway_c_create_role(#gateway_c_create_role{name = F1}, Bin, TrUserData) ->
-    if F1 == undefined -> Bin;
+encode_msg_gateway_c_create_role(#gateway_c_create_role{name = F1, career = F2}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    case is_empty_string(TrF1) of
+                        true -> Bin;
+                        false -> e_type_string(TrF1, <<Bin/binary, 10>>, TrUserData)
+                    end
+                end
+         end,
+    if F2 == undefined -> B1;
        true ->
            begin
-               TrF1 = id(F1, TrUserData),
-               case is_empty_string(TrF1) of
-                   true -> Bin;
-                   false -> e_type_string(TrF1, <<Bin/binary, 10>>, TrUserData)
+               TrF2 = id(F2, TrUserData),
+               if TrF2 =:= 0 -> B1;
+                  true -> e_varint(TrF2, <<B1/binary, 16>>, TrUserData)
                end
            end
     end.
@@ -216,6 +252,62 @@ encode_msg_gateway_s_create_role(#gateway_s_create_role{role_list = F1}, Bin, Tr
 encode_msg_gateway_c_heart(_Msg, _TrUserData) -> <<>>.
 
 encode_msg_gateway_s_heart(_Msg, _TrUserData) -> <<>>.
+
+encode_msg_gateway_c_warp(Msg, TrUserData) -> encode_msg_gateway_c_warp(Msg, <<>>, TrUserData).
+
+
+encode_msg_gateway_c_warp(#gateway_c_warp{proto = F1, data = F2}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    if F2 == undefined -> B1;
+       true ->
+           begin
+               TrF2 = id(F2, TrUserData),
+               case iolist_size(TrF2) of
+                   0 -> B1;
+                   _ -> e_type_bytes(TrF2, <<B1/binary, 18>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_gateway_s_warp(Msg, TrUserData) -> encode_msg_gateway_s_warp(Msg, <<>>, TrUserData).
+
+
+encode_msg_gateway_s_warp(#gateway_s_warp{proto = F1, data = F2}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    if F2 == undefined -> B1;
+       true ->
+           begin
+               TrF2 = id(F2, TrUserData),
+               case iolist_size(TrF2) of
+                   0 -> B1;
+                   _ -> e_type_bytes(TrF2, <<B1/binary, 18>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_gateway_c_exit_role(_Msg, _TrUserData) -> <<>>.
+
+encode_msg_gateway_s_exit_role(_Msg, _TrUserData) -> <<>>.
+
+encode_msg_gateway_c_exit_account(_Msg, _TrUserData) -> <<>>.
+
+encode_msg_gateway_s_exit_account(_Msg, _TrUserData) -> <<>>.
 
 e_mfield_gateway_s_login_role_list(Msg, Bin, TrUserData) ->
     SubBin = encode_msg_gateway_p_role_info(Msg, <<>>, TrUserData),
@@ -354,7 +446,13 @@ decode_msg_2_doit(gateway_s_select_role, Bin, TrUserData) -> id(decode_msg_gatew
 decode_msg_2_doit(gateway_c_create_role, Bin, TrUserData) -> id(decode_msg_gateway_c_create_role(Bin, TrUserData), TrUserData);
 decode_msg_2_doit(gateway_s_create_role, Bin, TrUserData) -> id(decode_msg_gateway_s_create_role(Bin, TrUserData), TrUserData);
 decode_msg_2_doit(gateway_c_heart, Bin, TrUserData) -> id(decode_msg_gateway_c_heart(Bin, TrUserData), TrUserData);
-decode_msg_2_doit(gateway_s_heart, Bin, TrUserData) -> id(decode_msg_gateway_s_heart(Bin, TrUserData), TrUserData).
+decode_msg_2_doit(gateway_s_heart, Bin, TrUserData) -> id(decode_msg_gateway_s_heart(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(gateway_c_warp, Bin, TrUserData) -> id(decode_msg_gateway_c_warp(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(gateway_s_warp, Bin, TrUserData) -> id(decode_msg_gateway_s_warp(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(gateway_c_exit_role, Bin, TrUserData) -> id(decode_msg_gateway_c_exit_role(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(gateway_s_exit_role, Bin, TrUserData) -> id(decode_msg_gateway_s_exit_role(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(gateway_c_exit_account, Bin, TrUserData) -> id(decode_msg_gateway_c_exit_account(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(gateway_s_exit_account, Bin, TrUserData) -> id(decode_msg_gateway_s_exit_account(Bin, TrUserData), TrUserData).
 
 
 
@@ -402,56 +500,63 @@ skip_32_gateway_c_login(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_
 
 skip_64_gateway_c_login(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_gateway_c_login(Rest, Z1, Z2, F@_1, TrUserData).
 
-decode_msg_gateway_p_role_info(Bin, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Bin, 0, 0, id(0, TrUserData), id(<<>>, TrUserData), TrUserData).
+decode_msg_gateway_p_role_info(Bin, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Bin, 0, 0, id(0, TrUserData), id(<<>>, TrUserData), id(0, TrUserData), TrUserData).
 
-dfp_read_field_def_gateway_p_role_info(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_p_role_info_id(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
-dfp_read_field_def_gateway_p_role_info(<<18, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_p_role_info_name(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
-dfp_read_field_def_gateway_p_role_info(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_p_role_info{id = F@_1, name = F@_2};
-dfp_read_field_def_gateway_p_role_info(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_gateway_p_role_info(Other, Z1, Z2, F@_1, F@_2, TrUserData).
+dfp_read_field_def_gateway_p_role_info(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> d_field_gateway_p_role_info_id(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData);
+dfp_read_field_def_gateway_p_role_info(<<18, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> d_field_gateway_p_role_info_name(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData);
+dfp_read_field_def_gateway_p_role_info(<<24, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> d_field_gateway_p_role_info_career(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData);
+dfp_read_field_def_gateway_p_role_info(<<>>, 0, 0, F@_1, F@_2, F@_3, _) -> #gateway_p_role_info{id = F@_1, name = F@_2, career = F@_3};
+dfp_read_field_def_gateway_p_role_info(Other, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> dg_read_field_def_gateway_p_role_info(Other, Z1, Z2, F@_1, F@_2, F@_3, TrUserData).
 
-dg_read_field_def_gateway_p_role_info(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_p_role_info(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
-dg_read_field_def_gateway_p_role_info(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+dg_read_field_def_gateway_p_role_info(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_p_role_info(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+dg_read_field_def_gateway_p_role_info(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
-        8 -> d_field_gateway_p_role_info_id(Rest, 0, 0, F@_1, F@_2, TrUserData);
-        18 -> d_field_gateway_p_role_info_name(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        8 -> d_field_gateway_p_role_info_id(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData);
+        18 -> d_field_gateway_p_role_info_name(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData);
+        24 -> d_field_gateway_p_role_info_career(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData);
         _ ->
             case Key band 7 of
-                0 -> skip_varint_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, TrUserData);
-                1 -> skip_64_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, TrUserData);
-                2 -> skip_length_delimited_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, TrUserData);
-                3 -> skip_group_gateway_p_role_info(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
-                5 -> skip_32_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, TrUserData)
+                0 -> skip_varint_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData);
+                1 -> skip_64_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData);
+                2 -> skip_length_delimited_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData);
+                3 -> skip_group_gateway_p_role_info(Rest, Key bsr 3, 0, F@_1, F@_2, F@_3, TrUserData);
+                5 -> skip_32_gateway_p_role_info(Rest, 0, 0, F@_1, F@_2, F@_3, TrUserData)
             end
     end;
-dg_read_field_def_gateway_p_role_info(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_p_role_info{id = F@_1, name = F@_2}.
+dg_read_field_def_gateway_p_role_info(<<>>, 0, 0, F@_1, F@_2, F@_3, _) -> #gateway_p_role_info{id = F@_1, name = F@_2, career = F@_3}.
 
-d_field_gateway_p_role_info_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_p_role_info_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
-d_field_gateway_p_role_info_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
+d_field_gateway_p_role_info_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) when N < 57 -> d_field_gateway_p_role_info_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+d_field_gateway_p_role_info_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, F@_3, TrUserData) ->
     {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
-    dfp_read_field_def_gateway_p_role_info(RestF, 0, 0, NewFValue, F@_2, TrUserData).
+    dfp_read_field_def_gateway_p_role_info(RestF, 0, 0, NewFValue, F@_2, F@_3, TrUserData).
 
-d_field_gateway_p_role_info_name(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_p_role_info_name(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
-d_field_gateway_p_role_info_name(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, TrUserData) ->
+d_field_gateway_p_role_info_name(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) when N < 57 -> d_field_gateway_p_role_info_name(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+d_field_gateway_p_role_info_name(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, F@_3, TrUserData) ->
     {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bytes:Len/binary, Rest2/binary>> = Rest, {id(binary:copy(Bytes), TrUserData), Rest2} end,
-    dfp_read_field_def_gateway_p_role_info(RestF, 0, 0, F@_1, NewFValue, TrUserData).
+    dfp_read_field_def_gateway_p_role_info(RestF, 0, 0, F@_1, NewFValue, F@_3, TrUserData).
 
-skip_varint_gateway_p_role_info(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
-skip_varint_gateway_p_role_info(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+d_field_gateway_p_role_info_career(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) when N < 57 -> d_field_gateway_p_role_info_career(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+d_field_gateway_p_role_info_career(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_gateway_p_role_info(RestF, 0, 0, F@_1, F@_2, NewFValue, TrUserData).
 
-skip_length_delimited_gateway_p_role_info(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_gateway_p_role_info(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
-skip_length_delimited_gateway_p_role_info(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+skip_varint_gateway_p_role_info(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> skip_varint_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData);
+skip_varint_gateway_p_role_info(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData).
+
+skip_length_delimited_gateway_p_role_info(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) when N < 57 -> skip_length_delimited_gateway_p_role_info(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+skip_length_delimited_gateway_p_role_info(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
-    dfp_read_field_def_gateway_p_role_info(Rest2, 0, 0, F@_1, F@_2, TrUserData).
+    dfp_read_field_def_gateway_p_role_info(Rest2, 0, 0, F@_1, F@_2, F@_3, TrUserData).
 
-skip_group_gateway_p_role_info(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
+skip_group_gateway_p_role_info(Bin, FNum, Z2, F@_1, F@_2, F@_3, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
-    dfp_read_field_def_gateway_p_role_info(Rest, 0, Z2, F@_1, F@_2, TrUserData).
+    dfp_read_field_def_gateway_p_role_info(Rest, 0, Z2, F@_1, F@_2, F@_3, TrUserData).
 
-skip_32_gateway_p_role_info(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+skip_32_gateway_p_role_info(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData).
 
-skip_64_gateway_p_role_info(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+skip_64_gateway_p_role_info(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, TrUserData) -> dfp_read_field_def_gateway_p_role_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, TrUserData).
 
 decode_msg_gateway_s_login(Bin, TrUserData) -> dfp_read_field_def_gateway_s_login(Bin, 0, 0, id(<<>>, TrUserData), id([], TrUserData), TrUserData).
 
@@ -592,49 +697,56 @@ skip_32_gateway_s_select_role(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -
 
 skip_64_gateway_s_select_role(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_gateway_s_select_role(Rest, Z1, Z2, F@_1, TrUserData).
 
-decode_msg_gateway_c_create_role(Bin, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Bin, 0, 0, id(<<>>, TrUserData), TrUserData).
+decode_msg_gateway_c_create_role(Bin, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Bin, 0, 0, id(<<>>, TrUserData), id(0, TrUserData), TrUserData).
 
-dfp_read_field_def_gateway_c_create_role(<<10, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> d_field_gateway_c_create_role_name(Rest, Z1, Z2, F@_1, TrUserData);
-dfp_read_field_def_gateway_c_create_role(<<>>, 0, 0, F@_1, _) -> #gateway_c_create_role{name = F@_1};
-dfp_read_field_def_gateway_c_create_role(Other, Z1, Z2, F@_1, TrUserData) -> dg_read_field_def_gateway_c_create_role(Other, Z1, Z2, F@_1, TrUserData).
+dfp_read_field_def_gateway_c_create_role(<<10, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_c_create_role_name(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_gateway_c_create_role(<<16, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_c_create_role_career(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_gateway_c_create_role(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_c_create_role{name = F@_1, career = F@_2};
+dfp_read_field_def_gateway_c_create_role(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_gateway_c_create_role(Other, Z1, Z2, F@_1, F@_2, TrUserData).
 
-dg_read_field_def_gateway_c_create_role(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_c_create_role(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
-dg_read_field_def_gateway_c_create_role(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+dg_read_field_def_gateway_c_create_role(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_c_create_role(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+dg_read_field_def_gateway_c_create_role(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
-        10 -> d_field_gateway_c_create_role_name(Rest, 0, 0, F@_1, TrUserData);
+        10 -> d_field_gateway_c_create_role_name(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        16 -> d_field_gateway_c_create_role_career(Rest, 0, 0, F@_1, F@_2, TrUserData);
         _ ->
             case Key band 7 of
-                0 -> skip_varint_gateway_c_create_role(Rest, 0, 0, F@_1, TrUserData);
-                1 -> skip_64_gateway_c_create_role(Rest, 0, 0, F@_1, TrUserData);
-                2 -> skip_length_delimited_gateway_c_create_role(Rest, 0, 0, F@_1, TrUserData);
-                3 -> skip_group_gateway_c_create_role(Rest, Key bsr 3, 0, F@_1, TrUserData);
-                5 -> skip_32_gateway_c_create_role(Rest, 0, 0, F@_1, TrUserData)
+                0 -> skip_varint_gateway_c_create_role(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                1 -> skip_64_gateway_c_create_role(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                2 -> skip_length_delimited_gateway_c_create_role(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                3 -> skip_group_gateway_c_create_role(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
+                5 -> skip_32_gateway_c_create_role(Rest, 0, 0, F@_1, F@_2, TrUserData)
             end
     end;
-dg_read_field_def_gateway_c_create_role(<<>>, 0, 0, F@_1, _) -> #gateway_c_create_role{name = F@_1}.
+dg_read_field_def_gateway_c_create_role(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_c_create_role{name = F@_1, career = F@_2}.
 
-d_field_gateway_c_create_role_name(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> d_field_gateway_c_create_role_name(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
-d_field_gateway_c_create_role_name(<<0:1, X:7, Rest/binary>>, N, Acc, _, TrUserData) ->
+d_field_gateway_c_create_role_name(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_c_create_role_name(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_gateway_c_create_role_name(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
     {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bytes:Len/binary, Rest2/binary>> = Rest, {id(binary:copy(Bytes), TrUserData), Rest2} end,
-    dfp_read_field_def_gateway_c_create_role(RestF, 0, 0, NewFValue, TrUserData).
+    dfp_read_field_def_gateway_c_create_role(RestF, 0, 0, NewFValue, F@_2, TrUserData).
 
-skip_varint_gateway_c_create_role(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> skip_varint_gateway_c_create_role(Rest, Z1, Z2, F@_1, TrUserData);
-skip_varint_gateway_c_create_role(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Rest, Z1, Z2, F@_1, TrUserData).
+d_field_gateway_c_create_role_career(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_c_create_role_career(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_gateway_c_create_role_career(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_gateway_c_create_role(RestF, 0, 0, F@_1, NewFValue, TrUserData).
 
-skip_length_delimited_gateway_c_create_role(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> skip_length_delimited_gateway_c_create_role(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
-skip_length_delimited_gateway_c_create_role(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+skip_varint_gateway_c_create_role(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_gateway_c_create_role(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+skip_varint_gateway_c_create_role(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_length_delimited_gateway_c_create_role(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_gateway_c_create_role(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+skip_length_delimited_gateway_c_create_role(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
-    dfp_read_field_def_gateway_c_create_role(Rest2, 0, 0, F@_1, TrUserData).
+    dfp_read_field_def_gateway_c_create_role(Rest2, 0, 0, F@_1, F@_2, TrUserData).
 
-skip_group_gateway_c_create_role(Bin, FNum, Z2, F@_1, TrUserData) ->
+skip_group_gateway_c_create_role(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
-    dfp_read_field_def_gateway_c_create_role(Rest, 0, Z2, F@_1, TrUserData).
+    dfp_read_field_def_gateway_c_create_role(Rest, 0, Z2, F@_1, F@_2, TrUserData).
 
-skip_32_gateway_c_create_role(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Rest, Z1, Z2, F@_1, TrUserData).
+skip_32_gateway_c_create_role(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
 
-skip_64_gateway_c_create_role(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Rest, Z1, Z2, F@_1, TrUserData).
+skip_64_gateway_c_create_role(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_c_create_role(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
 
 decode_msg_gateway_s_create_role(Bin, TrUserData) -> dfp_read_field_def_gateway_s_create_role(Bin, 0, 0, id([], TrUserData), TrUserData).
 
@@ -748,6 +860,244 @@ skip_32_gateway_s_heart(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_f
 
 skip_64_gateway_s_heart(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_heart(Rest, Z1, Z2, TrUserData).
 
+decode_msg_gateway_c_warp(Bin, TrUserData) -> dfp_read_field_def_gateway_c_warp(Bin, 0, 0, id(0, TrUserData), id(<<>>, TrUserData), TrUserData).
+
+dfp_read_field_def_gateway_c_warp(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_c_warp_proto(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_gateway_c_warp(<<18, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_c_warp_data(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_gateway_c_warp(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_c_warp{proto = F@_1, data = F@_2};
+dfp_read_field_def_gateway_c_warp(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_gateway_c_warp(Other, Z1, Z2, F@_1, F@_2, TrUserData).
+
+dg_read_field_def_gateway_c_warp(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_c_warp(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+dg_read_field_def_gateway_c_warp(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_gateway_c_warp_proto(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        18 -> d_field_gateway_c_warp_data(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_gateway_c_warp(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                1 -> skip_64_gateway_c_warp(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                2 -> skip_length_delimited_gateway_c_warp(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                3 -> skip_group_gateway_c_warp(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
+                5 -> skip_32_gateway_c_warp(Rest, 0, 0, F@_1, F@_2, TrUserData)
+            end
+    end;
+dg_read_field_def_gateway_c_warp(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_c_warp{proto = F@_1, data = F@_2}.
+
+d_field_gateway_c_warp_proto(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_c_warp_proto(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_gateway_c_warp_proto(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_gateway_c_warp(RestF, 0, 0, NewFValue, F@_2, TrUserData).
+
+d_field_gateway_c_warp_data(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_c_warp_data(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_gateway_c_warp_data(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, TrUserData) ->
+    {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bytes:Len/binary, Rest2/binary>> = Rest, {id(binary:copy(Bytes), TrUserData), Rest2} end,
+    dfp_read_field_def_gateway_c_warp(RestF, 0, 0, F@_1, NewFValue, TrUserData).
+
+skip_varint_gateway_c_warp(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_gateway_c_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+skip_varint_gateway_c_warp(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_c_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_length_delimited_gateway_c_warp(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_gateway_c_warp(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+skip_length_delimited_gateway_c_warp(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_gateway_c_warp(Rest2, 0, 0, F@_1, F@_2, TrUserData).
+
+skip_group_gateway_c_warp(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_gateway_c_warp(Rest, 0, Z2, F@_1, F@_2, TrUserData).
+
+skip_32_gateway_c_warp(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_c_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_64_gateway_c_warp(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_c_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+decode_msg_gateway_s_warp(Bin, TrUserData) -> dfp_read_field_def_gateway_s_warp(Bin, 0, 0, id(0, TrUserData), id(<<>>, TrUserData), TrUserData).
+
+dfp_read_field_def_gateway_s_warp(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_s_warp_proto(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_gateway_s_warp(<<18, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_gateway_s_warp_data(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_gateway_s_warp(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_s_warp{proto = F@_1, data = F@_2};
+dfp_read_field_def_gateway_s_warp(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_gateway_s_warp(Other, Z1, Z2, F@_1, F@_2, TrUserData).
+
+dg_read_field_def_gateway_s_warp(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_s_warp(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+dg_read_field_def_gateway_s_warp(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_gateway_s_warp_proto(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        18 -> d_field_gateway_s_warp_data(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_gateway_s_warp(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                1 -> skip_64_gateway_s_warp(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                2 -> skip_length_delimited_gateway_s_warp(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                3 -> skip_group_gateway_s_warp(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
+                5 -> skip_32_gateway_s_warp(Rest, 0, 0, F@_1, F@_2, TrUserData)
+            end
+    end;
+dg_read_field_def_gateway_s_warp(<<>>, 0, 0, F@_1, F@_2, _) -> #gateway_s_warp{proto = F@_1, data = F@_2}.
+
+d_field_gateway_s_warp_proto(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_s_warp_proto(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_gateway_s_warp_proto(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_gateway_s_warp(RestF, 0, 0, NewFValue, F@_2, TrUserData).
+
+d_field_gateway_s_warp_data(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_gateway_s_warp_data(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_gateway_s_warp_data(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, TrUserData) ->
+    {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bytes:Len/binary, Rest2/binary>> = Rest, {id(binary:copy(Bytes), TrUserData), Rest2} end,
+    dfp_read_field_def_gateway_s_warp(RestF, 0, 0, F@_1, NewFValue, TrUserData).
+
+skip_varint_gateway_s_warp(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_gateway_s_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+skip_varint_gateway_s_warp(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_s_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_length_delimited_gateway_s_warp(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_gateway_s_warp(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+skip_length_delimited_gateway_s_warp(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_gateway_s_warp(Rest2, 0, 0, F@_1, F@_2, TrUserData).
+
+skip_group_gateway_s_warp(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_gateway_s_warp(Rest, 0, Z2, F@_1, F@_2, TrUserData).
+
+skip_32_gateway_s_warp(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_s_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_64_gateway_s_warp(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_gateway_s_warp(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+decode_msg_gateway_c_exit_role(Bin, TrUserData) -> dfp_read_field_def_gateway_c_exit_role(Bin, 0, 0, TrUserData).
+
+dfp_read_field_def_gateway_c_exit_role(<<>>, 0, 0, _) -> #gateway_c_exit_role{};
+dfp_read_field_def_gateway_c_exit_role(Other, Z1, Z2, TrUserData) -> dg_read_field_def_gateway_c_exit_role(Other, Z1, Z2, TrUserData).
+
+dg_read_field_def_gateway_c_exit_role(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_c_exit_role(Rest, N + 7, X bsl N + Acc, TrUserData);
+dg_read_field_def_gateway_c_exit_role(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key band 7 of
+        0 -> skip_varint_gateway_c_exit_role(Rest, 0, 0, TrUserData);
+        1 -> skip_64_gateway_c_exit_role(Rest, 0, 0, TrUserData);
+        2 -> skip_length_delimited_gateway_c_exit_role(Rest, 0, 0, TrUserData);
+        3 -> skip_group_gateway_c_exit_role(Rest, Key bsr 3, 0, TrUserData);
+        5 -> skip_32_gateway_c_exit_role(Rest, 0, 0, TrUserData)
+    end;
+dg_read_field_def_gateway_c_exit_role(<<>>, 0, 0, _) -> #gateway_c_exit_role{}.
+
+skip_varint_gateway_c_exit_role(<<1:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> skip_varint_gateway_c_exit_role(Rest, Z1, Z2, TrUserData);
+skip_varint_gateway_c_exit_role(<<0:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_c_exit_role(Rest, Z1, Z2, TrUserData).
+
+skip_length_delimited_gateway_c_exit_role(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 57 -> skip_length_delimited_gateway_c_exit_role(Rest, N + 7, X bsl N + Acc, TrUserData);
+skip_length_delimited_gateway_c_exit_role(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_gateway_c_exit_role(Rest2, 0, 0, TrUserData).
+
+skip_group_gateway_c_exit_role(Bin, FNum, Z2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_gateway_c_exit_role(Rest, 0, Z2, TrUserData).
+
+skip_32_gateway_c_exit_role(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_c_exit_role(Rest, Z1, Z2, TrUserData).
+
+skip_64_gateway_c_exit_role(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_c_exit_role(Rest, Z1, Z2, TrUserData).
+
+decode_msg_gateway_s_exit_role(Bin, TrUserData) -> dfp_read_field_def_gateway_s_exit_role(Bin, 0, 0, TrUserData).
+
+dfp_read_field_def_gateway_s_exit_role(<<>>, 0, 0, _) -> #gateway_s_exit_role{};
+dfp_read_field_def_gateway_s_exit_role(Other, Z1, Z2, TrUserData) -> dg_read_field_def_gateway_s_exit_role(Other, Z1, Z2, TrUserData).
+
+dg_read_field_def_gateway_s_exit_role(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_s_exit_role(Rest, N + 7, X bsl N + Acc, TrUserData);
+dg_read_field_def_gateway_s_exit_role(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key band 7 of
+        0 -> skip_varint_gateway_s_exit_role(Rest, 0, 0, TrUserData);
+        1 -> skip_64_gateway_s_exit_role(Rest, 0, 0, TrUserData);
+        2 -> skip_length_delimited_gateway_s_exit_role(Rest, 0, 0, TrUserData);
+        3 -> skip_group_gateway_s_exit_role(Rest, Key bsr 3, 0, TrUserData);
+        5 -> skip_32_gateway_s_exit_role(Rest, 0, 0, TrUserData)
+    end;
+dg_read_field_def_gateway_s_exit_role(<<>>, 0, 0, _) -> #gateway_s_exit_role{}.
+
+skip_varint_gateway_s_exit_role(<<1:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> skip_varint_gateway_s_exit_role(Rest, Z1, Z2, TrUserData);
+skip_varint_gateway_s_exit_role(<<0:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_exit_role(Rest, Z1, Z2, TrUserData).
+
+skip_length_delimited_gateway_s_exit_role(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 57 -> skip_length_delimited_gateway_s_exit_role(Rest, N + 7, X bsl N + Acc, TrUserData);
+skip_length_delimited_gateway_s_exit_role(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_gateway_s_exit_role(Rest2, 0, 0, TrUserData).
+
+skip_group_gateway_s_exit_role(Bin, FNum, Z2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_gateway_s_exit_role(Rest, 0, Z2, TrUserData).
+
+skip_32_gateway_s_exit_role(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_exit_role(Rest, Z1, Z2, TrUserData).
+
+skip_64_gateway_s_exit_role(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_exit_role(Rest, Z1, Z2, TrUserData).
+
+decode_msg_gateway_c_exit_account(Bin, TrUserData) -> dfp_read_field_def_gateway_c_exit_account(Bin, 0, 0, TrUserData).
+
+dfp_read_field_def_gateway_c_exit_account(<<>>, 0, 0, _) -> #gateway_c_exit_account{};
+dfp_read_field_def_gateway_c_exit_account(Other, Z1, Z2, TrUserData) -> dg_read_field_def_gateway_c_exit_account(Other, Z1, Z2, TrUserData).
+
+dg_read_field_def_gateway_c_exit_account(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_c_exit_account(Rest, N + 7, X bsl N + Acc, TrUserData);
+dg_read_field_def_gateway_c_exit_account(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key band 7 of
+        0 -> skip_varint_gateway_c_exit_account(Rest, 0, 0, TrUserData);
+        1 -> skip_64_gateway_c_exit_account(Rest, 0, 0, TrUserData);
+        2 -> skip_length_delimited_gateway_c_exit_account(Rest, 0, 0, TrUserData);
+        3 -> skip_group_gateway_c_exit_account(Rest, Key bsr 3, 0, TrUserData);
+        5 -> skip_32_gateway_c_exit_account(Rest, 0, 0, TrUserData)
+    end;
+dg_read_field_def_gateway_c_exit_account(<<>>, 0, 0, _) -> #gateway_c_exit_account{}.
+
+skip_varint_gateway_c_exit_account(<<1:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> skip_varint_gateway_c_exit_account(Rest, Z1, Z2, TrUserData);
+skip_varint_gateway_c_exit_account(<<0:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_c_exit_account(Rest, Z1, Z2, TrUserData).
+
+skip_length_delimited_gateway_c_exit_account(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 57 -> skip_length_delimited_gateway_c_exit_account(Rest, N + 7, X bsl N + Acc, TrUserData);
+skip_length_delimited_gateway_c_exit_account(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_gateway_c_exit_account(Rest2, 0, 0, TrUserData).
+
+skip_group_gateway_c_exit_account(Bin, FNum, Z2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_gateway_c_exit_account(Rest, 0, Z2, TrUserData).
+
+skip_32_gateway_c_exit_account(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_c_exit_account(Rest, Z1, Z2, TrUserData).
+
+skip_64_gateway_c_exit_account(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_c_exit_account(Rest, Z1, Z2, TrUserData).
+
+decode_msg_gateway_s_exit_account(Bin, TrUserData) -> dfp_read_field_def_gateway_s_exit_account(Bin, 0, 0, TrUserData).
+
+dfp_read_field_def_gateway_s_exit_account(<<>>, 0, 0, _) -> #gateway_s_exit_account{};
+dfp_read_field_def_gateway_s_exit_account(Other, Z1, Z2, TrUserData) -> dg_read_field_def_gateway_s_exit_account(Other, Z1, Z2, TrUserData).
+
+dg_read_field_def_gateway_s_exit_account(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 32 - 7 -> dg_read_field_def_gateway_s_exit_account(Rest, N + 7, X bsl N + Acc, TrUserData);
+dg_read_field_def_gateway_s_exit_account(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key band 7 of
+        0 -> skip_varint_gateway_s_exit_account(Rest, 0, 0, TrUserData);
+        1 -> skip_64_gateway_s_exit_account(Rest, 0, 0, TrUserData);
+        2 -> skip_length_delimited_gateway_s_exit_account(Rest, 0, 0, TrUserData);
+        3 -> skip_group_gateway_s_exit_account(Rest, Key bsr 3, 0, TrUserData);
+        5 -> skip_32_gateway_s_exit_account(Rest, 0, 0, TrUserData)
+    end;
+dg_read_field_def_gateway_s_exit_account(<<>>, 0, 0, _) -> #gateway_s_exit_account{}.
+
+skip_varint_gateway_s_exit_account(<<1:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> skip_varint_gateway_s_exit_account(Rest, Z1, Z2, TrUserData);
+skip_varint_gateway_s_exit_account(<<0:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_exit_account(Rest, Z1, Z2, TrUserData).
+
+skip_length_delimited_gateway_s_exit_account(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 57 -> skip_length_delimited_gateway_s_exit_account(Rest, N + 7, X bsl N + Acc, TrUserData);
+skip_length_delimited_gateway_s_exit_account(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_gateway_s_exit_account(Rest2, 0, 0, TrUserData).
+
+skip_group_gateway_s_exit_account(Bin, FNum, Z2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_gateway_s_exit_account(Rest, 0, Z2, TrUserData).
+
+skip_32_gateway_s_exit_account(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_exit_account(Rest, Z1, Z2, TrUserData).
+
+skip_64_gateway_s_exit_account(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_gateway_s_exit_account(Rest, Z1, Z2, TrUserData).
+
 read_group(Bin, FieldNum) ->
     {NumBytes, EndTagLen} = read_gr_b(Bin, 0, 0, 0, 0, FieldNum),
     <<Group:NumBytes/binary, _:EndTagLen/binary, Rest/binary>> = Bin,
@@ -822,7 +1172,13 @@ merge_msgs(Prev, New, MsgName, Opts) ->
         gateway_c_create_role -> merge_msg_gateway_c_create_role(Prev, New, TrUserData);
         gateway_s_create_role -> merge_msg_gateway_s_create_role(Prev, New, TrUserData);
         gateway_c_heart -> merge_msg_gateway_c_heart(Prev, New, TrUserData);
-        gateway_s_heart -> merge_msg_gateway_s_heart(Prev, New, TrUserData)
+        gateway_s_heart -> merge_msg_gateway_s_heart(Prev, New, TrUserData);
+        gateway_c_warp -> merge_msg_gateway_c_warp(Prev, New, TrUserData);
+        gateway_s_warp -> merge_msg_gateway_s_warp(Prev, New, TrUserData);
+        gateway_c_exit_role -> merge_msg_gateway_c_exit_role(Prev, New, TrUserData);
+        gateway_s_exit_role -> merge_msg_gateway_s_exit_role(Prev, New, TrUserData);
+        gateway_c_exit_account -> merge_msg_gateway_c_exit_account(Prev, New, TrUserData);
+        gateway_s_exit_account -> merge_msg_gateway_s_exit_account(Prev, New, TrUserData)
     end.
 
 -compile({nowarn_unused_function,merge_msg_gateway_c_login/3}).
@@ -833,7 +1189,7 @@ merge_msg_gateway_c_login(#gateway_c_login{account = PFaccount}, #gateway_c_logi
                          end}.
 
 -compile({nowarn_unused_function,merge_msg_gateway_p_role_info/3}).
-merge_msg_gateway_p_role_info(#gateway_p_role_info{id = PFid, name = PFname}, #gateway_p_role_info{id = NFid, name = NFname}, _) ->
+merge_msg_gateway_p_role_info(#gateway_p_role_info{id = PFid, name = PFname, career = PFcareer}, #gateway_p_role_info{id = NFid, name = NFname, career = NFcareer}, _) ->
     #gateway_p_role_info{id =
                              if NFid =:= undefined -> PFid;
                                 true -> NFid
@@ -841,6 +1197,10 @@ merge_msg_gateway_p_role_info(#gateway_p_role_info{id = PFid, name = PFname}, #g
                          name =
                              if NFname =:= undefined -> PFname;
                                 true -> NFname
+                             end,
+                         career =
+                             if NFcareer =:= undefined -> PFcareer;
+                                true -> NFcareer
                              end}.
 
 -compile({nowarn_unused_function,merge_msg_gateway_s_login/3}).
@@ -870,10 +1230,14 @@ merge_msg_gateway_s_select_role(#gateway_s_select_role{id = PFid}, #gateway_s_se
                                end}.
 
 -compile({nowarn_unused_function,merge_msg_gateway_c_create_role/3}).
-merge_msg_gateway_c_create_role(#gateway_c_create_role{name = PFname}, #gateway_c_create_role{name = NFname}, _) ->
+merge_msg_gateway_c_create_role(#gateway_c_create_role{name = PFname, career = PFcareer}, #gateway_c_create_role{name = NFname, career = NFcareer}, _) ->
     #gateway_c_create_role{name =
                                if NFname =:= undefined -> PFname;
                                   true -> NFname
+                               end,
+                           career =
+                               if NFcareer =:= undefined -> PFcareer;
+                                  true -> NFcareer
                                end}.
 
 -compile({nowarn_unused_function,merge_msg_gateway_s_create_role/3}).
@@ -889,6 +1253,40 @@ merge_msg_gateway_c_heart(_Prev, New, _TrUserData) -> New.
 
 -compile({nowarn_unused_function,merge_msg_gateway_s_heart/3}).
 merge_msg_gateway_s_heart(_Prev, New, _TrUserData) -> New.
+
+-compile({nowarn_unused_function,merge_msg_gateway_c_warp/3}).
+merge_msg_gateway_c_warp(#gateway_c_warp{proto = PFproto, data = PFdata}, #gateway_c_warp{proto = NFproto, data = NFdata}, _) ->
+    #gateway_c_warp{proto =
+                        if NFproto =:= undefined -> PFproto;
+                           true -> NFproto
+                        end,
+                    data =
+                        if NFdata =:= undefined -> PFdata;
+                           true -> NFdata
+                        end}.
+
+-compile({nowarn_unused_function,merge_msg_gateway_s_warp/3}).
+merge_msg_gateway_s_warp(#gateway_s_warp{proto = PFproto, data = PFdata}, #gateway_s_warp{proto = NFproto, data = NFdata}, _) ->
+    #gateway_s_warp{proto =
+                        if NFproto =:= undefined -> PFproto;
+                           true -> NFproto
+                        end,
+                    data =
+                        if NFdata =:= undefined -> PFdata;
+                           true -> NFdata
+                        end}.
+
+-compile({nowarn_unused_function,merge_msg_gateway_c_exit_role/3}).
+merge_msg_gateway_c_exit_role(_Prev, New, _TrUserData) -> New.
+
+-compile({nowarn_unused_function,merge_msg_gateway_s_exit_role/3}).
+merge_msg_gateway_s_exit_role(_Prev, New, _TrUserData) -> New.
+
+-compile({nowarn_unused_function,merge_msg_gateway_c_exit_account/3}).
+merge_msg_gateway_c_exit_account(_Prev, New, _TrUserData) -> New.
+
+-compile({nowarn_unused_function,merge_msg_gateway_s_exit_account/3}).
+merge_msg_gateway_s_exit_account(_Prev, New, _TrUserData) -> New.
 
 
 verify_msg(Msg) when tuple_size(Msg) >= 1 -> verify_msg(Msg, element(1, Msg), []);
@@ -910,6 +1308,12 @@ verify_msg(Msg, MsgName, Opts) ->
         gateway_s_create_role -> v_msg_gateway_s_create_role(Msg, [MsgName], TrUserData);
         gateway_c_heart -> v_msg_gateway_c_heart(Msg, [MsgName], TrUserData);
         gateway_s_heart -> v_msg_gateway_s_heart(Msg, [MsgName], TrUserData);
+        gateway_c_warp -> v_msg_gateway_c_warp(Msg, [MsgName], TrUserData);
+        gateway_s_warp -> v_msg_gateway_s_warp(Msg, [MsgName], TrUserData);
+        gateway_c_exit_role -> v_msg_gateway_c_exit_role(Msg, [MsgName], TrUserData);
+        gateway_s_exit_role -> v_msg_gateway_s_exit_role(Msg, [MsgName], TrUserData);
+        gateway_c_exit_account -> v_msg_gateway_c_exit_account(Msg, [MsgName], TrUserData);
+        gateway_s_exit_account -> v_msg_gateway_s_exit_account(Msg, [MsgName], TrUserData);
         _ -> mk_type_error(not_a_known_message, Msg, [])
     end.
 
@@ -925,12 +1329,15 @@ v_msg_gateway_c_login(X, Path, _TrUserData) -> mk_type_error({expected_msg, gate
 
 -compile({nowarn_unused_function,v_msg_gateway_p_role_info/3}).
 -dialyzer({nowarn_function,v_msg_gateway_p_role_info/3}).
-v_msg_gateway_p_role_info(#gateway_p_role_info{id = F1, name = F2}, Path, TrUserData) ->
+v_msg_gateway_p_role_info(#gateway_p_role_info{id = F1, name = F2, career = F3}, Path, TrUserData) ->
     if F1 == undefined -> ok;
        true -> v_type_uint32(F1, [id | Path], TrUserData)
     end,
     if F2 == undefined -> ok;
        true -> v_type_string(F2, [name | Path], TrUserData)
+    end,
+    if F3 == undefined -> ok;
+       true -> v_type_uint32(F3, [career | Path], TrUserData)
     end,
     ok;
 v_msg_gateway_p_role_info(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_p_role_info}, X, Path).
@@ -969,9 +1376,12 @@ v_msg_gateway_s_select_role(X, Path, _TrUserData) -> mk_type_error({expected_msg
 
 -compile({nowarn_unused_function,v_msg_gateway_c_create_role/3}).
 -dialyzer({nowarn_function,v_msg_gateway_c_create_role/3}).
-v_msg_gateway_c_create_role(#gateway_c_create_role{name = F1}, Path, TrUserData) ->
+v_msg_gateway_c_create_role(#gateway_c_create_role{name = F1, career = F2}, Path, TrUserData) ->
     if F1 == undefined -> ok;
        true -> v_type_string(F1, [name | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_uint32(F2, [career | Path], TrUserData)
     end,
     ok;
 v_msg_gateway_c_create_role(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_c_create_role}, X, Path).
@@ -997,6 +1407,50 @@ v_msg_gateway_c_heart(X, Path, _TrUserData) -> mk_type_error({expected_msg, gate
 v_msg_gateway_s_heart(#gateway_s_heart{}, _Path, _) -> ok;
 v_msg_gateway_s_heart(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_s_heart}, X, Path).
 
+-compile({nowarn_unused_function,v_msg_gateway_c_warp/3}).
+-dialyzer({nowarn_function,v_msg_gateway_c_warp/3}).
+v_msg_gateway_c_warp(#gateway_c_warp{proto = F1, data = F2}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [proto | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_bytes(F2, [data | Path], TrUserData)
+    end,
+    ok;
+v_msg_gateway_c_warp(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_c_warp}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_gateway_s_warp/3}).
+-dialyzer({nowarn_function,v_msg_gateway_s_warp/3}).
+v_msg_gateway_s_warp(#gateway_s_warp{proto = F1, data = F2}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [proto | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_bytes(F2, [data | Path], TrUserData)
+    end,
+    ok;
+v_msg_gateway_s_warp(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_s_warp}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_gateway_c_exit_role/3}).
+-dialyzer({nowarn_function,v_msg_gateway_c_exit_role/3}).
+v_msg_gateway_c_exit_role(#gateway_c_exit_role{}, _Path, _) -> ok;
+v_msg_gateway_c_exit_role(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_c_exit_role}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_gateway_s_exit_role/3}).
+-dialyzer({nowarn_function,v_msg_gateway_s_exit_role/3}).
+v_msg_gateway_s_exit_role(#gateway_s_exit_role{}, _Path, _) -> ok;
+v_msg_gateway_s_exit_role(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_s_exit_role}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_gateway_c_exit_account/3}).
+-dialyzer({nowarn_function,v_msg_gateway_c_exit_account/3}).
+v_msg_gateway_c_exit_account(#gateway_c_exit_account{}, _Path, _) -> ok;
+v_msg_gateway_c_exit_account(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_c_exit_account}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_gateway_s_exit_account/3}).
+-dialyzer({nowarn_function,v_msg_gateway_s_exit_account/3}).
+v_msg_gateway_s_exit_account(#gateway_s_exit_account{}, _Path, _) -> ok;
+v_msg_gateway_s_exit_account(X, Path, _TrUserData) -> mk_type_error({expected_msg, gateway_s_exit_account}, X, Path).
+
 -compile({nowarn_unused_function,v_type_uint32/3}).
 -dialyzer({nowarn_function,v_type_uint32/3}).
 v_type_uint32(N, _Path, _TrUserData) when 0 =< N, N =< 4294967295 -> ok;
@@ -1013,6 +1467,12 @@ v_type_string(S, Path, _TrUserData) when is_list(S); is_binary(S) ->
         error:badarg -> mk_type_error(bad_unicode_string, S, Path)
     end;
 v_type_string(X, Path, _TrUserData) -> mk_type_error(bad_unicode_string, X, Path).
+
+-compile({nowarn_unused_function,v_type_bytes/3}).
+-dialyzer({nowarn_function,v_type_bytes/3}).
+v_type_bytes(B, _Path, _TrUserData) when is_binary(B) -> ok;
+v_type_bytes(B, _Path, _TrUserData) when is_list(B) -> ok;
+v_type_bytes(X, Path, _TrUserData) -> mk_type_error(bad_binary_value, X, Path).
 
 -compile({nowarn_unused_function,mk_type_error/3}).
 -spec mk_type_error(_, _, list()) -> no_return().
@@ -1053,23 +1513,62 @@ cons(Elem, Acc, _TrUserData) -> [Elem | Acc].
 
 get_msg_defs() ->
     [{{msg, gateway_c_login}, [#field{name = account, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}]},
-     {{msg, gateway_p_role_info}, [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = name, fnum = 2, rnum = 3, type = string, occurrence = optional, opts = []}]},
+     {{msg, gateway_p_role_info},
+      [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+       #field{name = name, fnum = 2, rnum = 3, type = string, occurrence = optional, opts = []},
+       #field{name = career, fnum = 3, rnum = 4, type = uint32, occurrence = optional, opts = []}]},
      {{msg, gateway_s_login}, [#field{name = account, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}, #field{name = role_list, fnum = 2, rnum = 3, type = {msg, gateway_p_role_info}, occurrence = repeated, opts = []}]},
      {{msg, gateway_c_select_role}, [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}]},
      {{msg, gateway_s_select_role}, [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}]},
-     {{msg, gateway_c_create_role}, [#field{name = name, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}]},
+     {{msg, gateway_c_create_role}, [#field{name = name, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}, #field{name = career, fnum = 2, rnum = 3, type = uint32, occurrence = optional, opts = []}]},
      {{msg, gateway_s_create_role}, [#field{name = role_list, fnum = 1, rnum = 2, type = {msg, gateway_p_role_info}, occurrence = repeated, opts = []}]},
      {{msg, gateway_c_heart}, []},
-     {{msg, gateway_s_heart}, []}].
+     {{msg, gateway_s_heart}, []},
+     {{msg, gateway_c_warp}, [#field{name = proto, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = data, fnum = 2, rnum = 3, type = bytes, occurrence = optional, opts = []}]},
+     {{msg, gateway_s_warp}, [#field{name = proto, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = data, fnum = 2, rnum = 3, type = bytes, occurrence = optional, opts = []}]},
+     {{msg, gateway_c_exit_role}, []},
+     {{msg, gateway_s_exit_role}, []},
+     {{msg, gateway_c_exit_account}, []},
+     {{msg, gateway_s_exit_account}, []}].
 
 
-get_msg_names() -> [gateway_c_login, gateway_p_role_info, gateway_s_login, gateway_c_select_role, gateway_s_select_role, gateway_c_create_role, gateway_s_create_role, gateway_c_heart, gateway_s_heart].
+get_msg_names() ->
+    [gateway_c_login,
+     gateway_p_role_info,
+     gateway_s_login,
+     gateway_c_select_role,
+     gateway_s_select_role,
+     gateway_c_create_role,
+     gateway_s_create_role,
+     gateway_c_heart,
+     gateway_s_heart,
+     gateway_c_warp,
+     gateway_s_warp,
+     gateway_c_exit_role,
+     gateway_s_exit_role,
+     gateway_c_exit_account,
+     gateway_s_exit_account].
 
 
 get_group_names() -> [].
 
 
-get_msg_or_group_names() -> [gateway_c_login, gateway_p_role_info, gateway_s_login, gateway_c_select_role, gateway_s_select_role, gateway_c_create_role, gateway_s_create_role, gateway_c_heart, gateway_s_heart].
+get_msg_or_group_names() ->
+    [gateway_c_login,
+     gateway_p_role_info,
+     gateway_s_login,
+     gateway_c_select_role,
+     gateway_s_select_role,
+     gateway_c_create_role,
+     gateway_s_create_role,
+     gateway_c_heart,
+     gateway_s_heart,
+     gateway_c_warp,
+     gateway_s_warp,
+     gateway_c_exit_role,
+     gateway_s_exit_role,
+     gateway_c_exit_account,
+     gateway_s_exit_account].
 
 
 get_enum_names() -> [].
@@ -1087,14 +1586,23 @@ fetch_enum_def(EnumName) -> erlang:error({no_such_enum, EnumName}).
 
 
 find_msg_def(gateway_c_login) -> [#field{name = account, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}];
-find_msg_def(gateway_p_role_info) -> [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = name, fnum = 2, rnum = 3, type = string, occurrence = optional, opts = []}];
+find_msg_def(gateway_p_role_info) ->
+    [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+     #field{name = name, fnum = 2, rnum = 3, type = string, occurrence = optional, opts = []},
+     #field{name = career, fnum = 3, rnum = 4, type = uint32, occurrence = optional, opts = []}];
 find_msg_def(gateway_s_login) -> [#field{name = account, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}, #field{name = role_list, fnum = 2, rnum = 3, type = {msg, gateway_p_role_info}, occurrence = repeated, opts = []}];
 find_msg_def(gateway_c_select_role) -> [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}];
 find_msg_def(gateway_s_select_role) -> [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}];
-find_msg_def(gateway_c_create_role) -> [#field{name = name, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}];
+find_msg_def(gateway_c_create_role) -> [#field{name = name, fnum = 1, rnum = 2, type = string, occurrence = optional, opts = []}, #field{name = career, fnum = 2, rnum = 3, type = uint32, occurrence = optional, opts = []}];
 find_msg_def(gateway_s_create_role) -> [#field{name = role_list, fnum = 1, rnum = 2, type = {msg, gateway_p_role_info}, occurrence = repeated, opts = []}];
 find_msg_def(gateway_c_heart) -> [];
 find_msg_def(gateway_s_heart) -> [];
+find_msg_def(gateway_c_warp) -> [#field{name = proto, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = data, fnum = 2, rnum = 3, type = bytes, occurrence = optional, opts = []}];
+find_msg_def(gateway_s_warp) -> [#field{name = proto, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = data, fnum = 2, rnum = 3, type = bytes, occurrence = optional, opts = []}];
+find_msg_def(gateway_c_exit_role) -> [];
+find_msg_def(gateway_s_exit_role) -> [];
+find_msg_def(gateway_c_exit_account) -> [];
+find_msg_def(gateway_s_exit_account) -> [];
 find_msg_def(_) -> error.
 
 
@@ -1162,6 +1670,12 @@ fqbin_to_msg_name(<<"gateway_c_create_role">>) -> gateway_c_create_role;
 fqbin_to_msg_name(<<"gateway_s_create_role">>) -> gateway_s_create_role;
 fqbin_to_msg_name(<<"gateway_c_heart">>) -> gateway_c_heart;
 fqbin_to_msg_name(<<"gateway_s_heart">>) -> gateway_s_heart;
+fqbin_to_msg_name(<<"gateway_c_warp">>) -> gateway_c_warp;
+fqbin_to_msg_name(<<"gateway_s_warp">>) -> gateway_s_warp;
+fqbin_to_msg_name(<<"gateway_c_exit_role">>) -> gateway_c_exit_role;
+fqbin_to_msg_name(<<"gateway_s_exit_role">>) -> gateway_s_exit_role;
+fqbin_to_msg_name(<<"gateway_c_exit_account">>) -> gateway_c_exit_account;
+fqbin_to_msg_name(<<"gateway_s_exit_account">>) -> gateway_s_exit_account;
 fqbin_to_msg_name(E) -> error({gpb_error, {badmsg, E}}).
 
 
@@ -1174,6 +1688,12 @@ msg_name_to_fqbin(gateway_c_create_role) -> <<"gateway_c_create_role">>;
 msg_name_to_fqbin(gateway_s_create_role) -> <<"gateway_s_create_role">>;
 msg_name_to_fqbin(gateway_c_heart) -> <<"gateway_c_heart">>;
 msg_name_to_fqbin(gateway_s_heart) -> <<"gateway_s_heart">>;
+msg_name_to_fqbin(gateway_c_warp) -> <<"gateway_c_warp">>;
+msg_name_to_fqbin(gateway_s_warp) -> <<"gateway_s_warp">>;
+msg_name_to_fqbin(gateway_c_exit_role) -> <<"gateway_c_exit_role">>;
+msg_name_to_fqbin(gateway_s_exit_role) -> <<"gateway_s_exit_role">>;
+msg_name_to_fqbin(gateway_c_exit_account) -> <<"gateway_c_exit_account">>;
+msg_name_to_fqbin(gateway_s_exit_account) -> <<"gateway_s_exit_account">>;
 msg_name_to_fqbin(E) -> error({gpb_error, {badmsg, E}}).
 
 
@@ -1212,7 +1732,22 @@ get_all_source_basenames() -> ["gateway_12.proto"].
 get_all_proto_names() -> ["gateway_12"].
 
 
-get_msg_containment("gateway_12") -> [gateway_c_create_role, gateway_c_heart, gateway_c_login, gateway_c_select_role, gateway_p_role_info, gateway_s_create_role, gateway_s_heart, gateway_s_login, gateway_s_select_role];
+get_msg_containment("gateway_12") ->
+    [gateway_c_create_role,
+     gateway_c_exit_account,
+     gateway_c_exit_role,
+     gateway_c_heart,
+     gateway_c_login,
+     gateway_c_select_role,
+     gateway_c_warp,
+     gateway_p_role_info,
+     gateway_s_create_role,
+     gateway_s_exit_account,
+     gateway_s_exit_role,
+     gateway_s_heart,
+     gateway_s_login,
+     gateway_s_select_role,
+     gateway_s_warp];
 get_msg_containment(P) -> error({gpb_error, {badproto, P}}).
 
 
@@ -1232,11 +1767,17 @@ get_enum_containment("gateway_12") -> [];
 get_enum_containment(P) -> error({gpb_error, {badproto, P}}).
 
 
+get_proto_by_msg_name_as_fqbin(<<"gateway_s_warp">>) -> "gateway_12";
+get_proto_by_msg_name_as_fqbin(<<"gateway_c_warp">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_s_heart">>) -> "gateway_12";
+get_proto_by_msg_name_as_fqbin(<<"gateway_s_exit_account">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_c_heart">>) -> "gateway_12";
+get_proto_by_msg_name_as_fqbin(<<"gateway_c_exit_account">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_s_select_role">>) -> "gateway_12";
+get_proto_by_msg_name_as_fqbin(<<"gateway_s_exit_role">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_s_create_role">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_c_select_role">>) -> "gateway_12";
+get_proto_by_msg_name_as_fqbin(<<"gateway_c_exit_role">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_c_create_role">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_s_login">>) -> "gateway_12";
 get_proto_by_msg_name_as_fqbin(<<"gateway_c_login">>) -> "gateway_12";

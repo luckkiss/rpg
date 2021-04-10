@@ -10,10 +10,12 @@
 
 -include("plm_lib.hrl").
 -include("gateway.hrl").
+-include("gateway_12_pb.hrl").
 
 %% API
 -export([
     pack/1,
+    c_pack/1,
     unpack/1
 ]).
 
@@ -25,8 +27,20 @@ pack(Msg) ->
     case proto_mapping:encode(Msg) of
         Bin when is_binary(Bin) ->
             Proto = proto_mapping:proto(Msg),
-            Len = byte_size(Bin),
-            <<Len:?M12_PROTO_LEN, Proto:?M12_PROTO_NUM, Bin/binary>>;
+            WarpBin = proto_mapping:encode(#gateway_s_warp{proto = Proto, data = Bin}),
+            WarpBin;
+        Error ->
+            throw(Error)
+    end.
+
+%% @doc 打包一条Protobuff信息
+-spec c_pack(proto()) -> any().
+c_pack(Msg) ->
+    case proto_mapping:encode(Msg) of
+        Bin when is_binary(Bin) ->
+            Proto = proto_mapping:proto(Msg),
+            WarpBin = proto_mapping:encode(#gateway_c_warp{proto = Proto, data = Bin}),
+            WarpBin;
         Error ->
             throw(Error)
     end.

@@ -19,10 +19,10 @@
 %% API
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2]).
 
--export([start_link/1, get_pid/1]).
+-export([start_link/1, get_pid/1, stop/1]).
 
-start_link([Id, Gateway]) ->
-    plm_svr:start_link({local, name(Id)}, ?MODULE, [Id, Gateway], []).
+start_link([Gateway]) ->
+    plm_svr:start_link(?MODULE, [Gateway], []).
 
 %% @doc 根据玩家id获取pid
 -spec get_pid(non_neg_integer()) -> undefined|pid().
@@ -32,41 +32,45 @@ get_pid(Id) ->
 name(Id) ->
     list_to_atom("player_" ++ integer_to_list(Id)).
 
-init([Id, Gateway]) ->
-    ?LOG_ERROR("~w ~w", [Id, Gateway]),
-    plm_sql:load(player, [Id]),
-    {ok, #player_state{id = Id, gateway = Gateway}}.
+stop(Pid) ->
+    plm_svr:cast(Pid, ?MSG13_STOP).
 
-handle_call(?MSG13_GATEWAY_RECONNECT1(Gateway), _From, State) ->
-    {reply, ok, State#player_state{gateway = Gateway}};
+init([Gateway]) ->
+    {ok, #player_state{gateway = Gateway}}.
 
 handle_call(Request, From, State) ->
     ?LOG_ERROR("~w ~w", [Request, From]),
     {reply, error, State}.
 
-handle_cast(?MSG13_GATEWAY_PROTO1(Msg), #player_state{gateway = Gateway} = State) ->
+handle_cast(?MSG13_GATEWAY_PROTO1(Msg), #player_state{id = Id, gateway = Gateway} = State) ->
     Rollback = plm_svr:hold(State),
-    try proto_mapping:route(Msg, State) of
-        #player_state{} = State1 ->
-            {noreply, State1};
-        UnKnow ->%% ????
-            ?LOG_ERROR("unknown return ~w", [UnKnow]),
-            Proto = proto_mapping:proto(Msg),
-            plm_svr:cast(Gateway, ?MSG12_SEND_MSG1(#game_s_error{code = ?M11_EC_ERROR, proto = Proto})),
-            State1 = plm_svr:rollback(Rollback),
-            {noreply, State1}
+    try
+        ?M11_IF2(Id == undefined andalso ?M12_PROTO_HEAD1(proto_mapping:proto(Msg)) =/= ?M12, ?M11_EC_NOT_LOGIN),
+        case proto_mapping:route(Msg, State) of
+            #player_state{} = State1 ->
+                {noreply, State1};
+            UnKnow ->%% ????
+                ?LOG_ERROR("unknown return ~w", [UnKnow]),
+                Proto = proto_mapping:proto(Msg),
+                gateway_svr:send_proto(Gateway, #game_s_error{code = ?M11_EC_ERROR, proto = Proto}),
+                State1 = plm_svr:rollback(Rollback),
+                {noreply, State1}
+        end
     catch
         throw:?M11_EC1(ErrorCode) ->
-            Proto = proto_mapping:proto(Msg),
-            plm_svr:cast(Gateway, ?MSG12_SEND_MSG1(#game_s_error{code = ErrorCode, proto = Proto})),
-            State1 = plm_svr:rollback(Rollback),
-            {noreply, State1};
+            StateThrow = plm_svr:rollback(Rollback),
+            ThrowProto = proto_mapping:proto(Msg),
+            gateway_svr:send_proto(Gateway, #game_s_error{code = ErrorCode, proto = ThrowProto}),
+            {noreply, StateThrow};
         C:E:S ->
             erlang:raise(C, E, S)
     end;
-
 handle_cast(?MSG13_GATEWAY_DISCONNECT, State) ->
     ?LOG_NOTICE("gateway disconnect"),
+    stop(self()),
+    {noreply, State};
+handle_cast(?MSG13_STOP, #player_state{account = Account} = State) ->
+    ?DO_IF(Account =/= undefined, plm_ll:release(?M13_LL_ACCOUNT1(Account))),
     {stop, normal, State};
 handle_cast(Request, State) ->
     ?LOG_ERROR("~w", [Request]),
@@ -75,3 +79,4 @@ handle_cast(Request, State) ->
 handle_info(Info, State) ->
     ?LOG_ERROR("~w", [Info]),
     {noreply, State}.
+

@@ -7,7 +7,8 @@
             [
                 kernel,
                 stdlib,
-                ranch,
+                cowboy,
+                gun,
                 enif_protobuf,
                 mongodb,
                 mysql_poolboy,

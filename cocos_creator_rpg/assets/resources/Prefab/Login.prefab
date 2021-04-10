@@ -25,13 +25,9 @@
       }
     ],
     "_active": true,
-    "_components": [
-      {
-        "__id__": 27
-      }
-    ],
+    "_components": [],
     "_prefab": {
-      "__id__": 28
+      "__id__": 27
     },
     "_opacity": 255,
     "_color": {
@@ -62,8 +58,8 @@
         0,
         0,
         1,
-        1,
-        1,
+        2,
+        2,
         1
       ]
     },
@@ -82,7 +78,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "AccountEditBox",
+    "_name": "EditBox",
     "_objFlags": 0,
     "_parent": {
       "__id__": 1
@@ -117,8 +113,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 400,
-      "height": 80
+      "width": 160,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -129,8 +125,8 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        0,
-        56.033,
+        -68.917,
+        -49.226,
         0,
         0,
         0,
@@ -184,8 +180,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 400,
-      "height": 80
+      "width": 160,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -286,9 +282,9 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "b9DwPuKLFDipl44bM4zYdC",
+    "fileId": "4cUB9Wx4pC94PV+id0eOWF",
     "sync": false
   },
   {
@@ -321,8 +317,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 318,
-      "height": 80
+      "width": 158,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -333,8 +329,8 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -158,
-        40,
+        -78,
+        20,
         0,
         0,
         0,
@@ -366,18 +362,14 @@
       "__id__": 7
     },
     "_enabled": true,
-    "_materials": [
-      {
-        "__uuid__": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
-      }
-    ],
+    "_materials": [],
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_useOriginalSize": true,
     "_string": "",
     "_N$string": "",
-    "_fontSize": 40,
-    "_lineHeight": 80,
+    "_fontSize": 20,
+    "_lineHeight": 25,
     "_enableWrapText": false,
     "_N$file": null,
     "_isSystemFontUsed": true,
@@ -425,9 +417,9 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "deynNXehhOraOKlQ/LI2gh",
+    "fileId": "80yQx/t7NB15GyBnPrlAJa",
     "sync": false
   },
   {
@@ -460,8 +452,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 398,
-      "height": 80
+      "width": 158,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -472,8 +464,8 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -198,
-        40,
+        -78,
+        20,
         0,
         0,
         0,
@@ -513,10 +505,10 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_useOriginalSize": true,
-    "_string": "Enter account here...",
-    "_N$string": "Enter account here...",
-    "_fontSize": 40,
-    "_lineHeight": 80,
+    "_string": "请输入账号",
+    "_N$string": "请输入账号",
+    "_fontSize": 20,
+    "_lineHeight": 25,
     "_enableWrapText": false,
     "_N$file": null,
     "_isSystemFontUsed": true,
@@ -564,9 +556,9 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "7cL5krfslCEodxgwc9ltzs",
+    "fileId": "314HvP7cVGC5PelNNdEtid",
     "sync": false
   },
   {
@@ -606,14 +598,14 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "450EkOMXNDcYgcZj0agZQ0",
+    "fileId": "7dpN7dfuxMBog7h76iZmat",
     "sync": false
   },
   {
     "__type__": "cc.Node",
-    "_name": "LoginButton",
+    "_name": "Button",
     "_objFlags": 0,
     "_parent": {
       "__id__": 1
@@ -642,8 +634,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 200,
-      "height": 80
+      "width": 100,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -654,8 +646,8 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        0,
-        -28.016,
+        104.52,
+        -49.226,
         0,
         0,
         0,
@@ -713,8 +705,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 200,
-      "height": 80
+      "width": 100,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -777,8 +769,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 200,
-      "height": 80
+      "width": 100,
+      "height": 40
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -830,10 +822,10 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_useOriginalSize": false,
-    "_string": "Login",
-    "_N$string": "Login",
-    "_fontSize": 40,
-    "_lineHeight": 80,
+    "_string": "登陆",
+    "_N$string": "登陆",
+    "_fontSize": 20,
+    "_lineHeight": 40,
     "_enableWrapText": false,
     "_N$file": null,
     "_isSystemFontUsed": true,
@@ -854,9 +846,9 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "04fK8GOhNCxq+O9FObxyYk",
+    "fileId": "8db0CJfK5OS7UvC6XQWbr0",
     "sync": false
   },
   {
@@ -924,9 +916,9 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "e1+NJJv4hFs4mWVak7XEaz",
+    "fileId": "fci0yEpdNFgJc6qryKkxDf",
     "sync": false
   },
   {
@@ -1017,20 +1009,10 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "9f3YBoePxCO704m3euA3/b",
+    "fileId": "a2OwS4pxhA7IXyVwI0tpeI",
     "sync": false
-  },
-  {
-    "__type__": "a87d4sZyhpHeY6ZvyTtQyRX",
-    "_name": "",
-    "_objFlags": 0,
-    "node": {
-      "__id__": 1
-    },
-    "_enabled": true,
-    "_id": ""
   },
   {
     "__type__": "cc.PrefabInfo",
@@ -1038,9 +1020,9 @@
       "__id__": 1
     },
     "asset": {
-      "__uuid__": "593f2ffc-b531-4265-8a78-22e451717bed"
+      "__id__": 0
     },
-    "fileId": "14eArQ4TlE5YKNGrzIqGpQ",
+    "fileId": "6389VP1atISIYMwht7gcF6",
     "sync": false
   }
 ]

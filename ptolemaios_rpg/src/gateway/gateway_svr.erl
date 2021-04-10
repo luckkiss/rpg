@@ -8,16 +8,17 @@
 -module(gateway_svr).
 -author("dominic").
 
--behaviour(plm_svr).
+-behaviour(cowboy_websocket).
 
 -include("plm_lib.hrl").
 -include("game.hrl").
 -include("game_11_pb.hrl").
+-include("gateway_12_pb.hrl").
 -include("gateway.hrl").
 -include("player.hrl").
 
 %% API
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
+-export([init/2, terminate/3, websocket_init/1, websocket_handle/2, websocket_info/2]).
 
 -export([start_link/3, send_proto/2]).
 
@@ -28,110 +29,59 @@ start_link(Ref, Transport, Opts) ->
 %% @doc 发送一条协议到网关进程
 -spec send_proto(pid(), gateway:proto()) -> any().
 send_proto(Pid, Msg) ->
-    plm_svr:cast(Pid, ?MSG12_SEND_MSG1(Msg)).
+    plm_svr:send(Pid, ?MSG12_SEND_MSG1(Msg)).
 
 %% @private
-init([Ref, ranch_tcp, []]) ->
-    %% ranch需要先返回pid, 再handshake
-    plm_svr:send(self(), {handshake, Ref}),
-    {ok, undefined}.
+init(Req, State) ->
+    {cowboy_websocket, Req, State, #{idle_timeout => infinity}}.
 
 %% @private
-handle_call(Request, From, State) ->
-    ?LOG_ERROR("~w ~w", [Request, From]),
-    {reply, error, State}.
+websocket_init(_State) ->
+    {ok, PlayerPid} = player_sup:start_child([self()]),
+    erlang:monitor(process, PlayerPid),
+    {ok, #gateway_state{player_pid = PlayerPid}}.
 
 %% @private
-handle_cast(?MSG12_SEND_MSG1(Msg), #gateway_state{socket = Socket} = State) ->
+websocket_info(?MSG12_SEND_MSG1(Msg), #gateway_state{} = State) ->
     Bin = gateway:pack(Msg),
-    ranch_tcp:send(Socket, Bin),
-    {noreply, State};
-handle_cast(Request, State) ->
+    {reply, {binary, Bin}, State};
+websocket_info({'DOWN', _Ref, process, Pid, _Reason}, #gateway_state{player_pid = Pid} = State) ->
+    State1 = close(State),
+    {stop, State1};
+websocket_info(Request, State) ->
     ?LOG_ERROR("~w", [Request]),
-    {noreply, State}.
+    {ok, State}.
 
 %% @private
-handle_info({handshake, Ref}, _) ->
-    {ok, Socket} = ranch:handshake(Ref),
-    ok = ranch_tcp:setopts(Socket, [{active, true}]),
-    {noreply, #gateway_state{socket = Socket}};
-handle_info({tcp, Socket, Data}, #gateway_state{socket = Socket, bin = OldBin} = State) ->
-    decode_bin(State#gateway_state{bin = <<Data/binary, OldBin/binary>>});
-handle_info({tcp_closed, _}, State) ->
-    State1 = close(State),
-    {stop, normal, State1};
-handle_info({tcp_error, _, Reason}, State) ->
-    State1 = close(State),
-    {stop, Reason, State1};
-handle_info({'DOWN', _Ref, process, Pid, _Reason}, #gateway_state{player_pid = Pid} = State) ->
-    State1 = close(State),
-    {stop, normal, State1};
-handle_info(Info, State) ->
+websocket_handle({binary, Bin}, State) ->
+    decode_bin(State#gateway_state{bin = Bin});
+websocket_handle(Info, State) ->
     ?LOG_ERROR("~w", [Info]),
-    {noreply, State}.
+    {ok, State}.
 
-terminate(_, State) ->
-    case State#gateway_state.account of
-        undefined -> skip;
-        Account -> plm_ll:release(?M13_LL_ACCOUNT1(Account))
-    end,
-    case State#gateway_state.player_id of
-        undefined -> skip;
-        PlayerId ->
-            plm_ll:release(?M13_LL_PLAYER_ID1(PlayerId)),
-            plm_svr:cast(State#gateway_state.player_pid, ?MSG13_GATEWAY_DISCONNECT)
-    end,
+terminate(_Reason, _Req, #gateway_state{player_pid = PlayerPid}) ->
+    plm_svr:cast_imm(PlayerPid, ?MSG13_GATEWAY_DISCONNECT),
     ok.
 
-decode_bin(#gateway_state{bin = Bin, socket = Socket, player_pid = PlayerPid} = State) ->
-    case Bin of
-        <<Len:?M12_PROTO_LEN, Proto:?M12_PROTO_NUM, ProtoBin:Len/binary, Remain/binary>> ->
-            ProtoHead = ?M12_PROTO_HEAD1(Proto),
-            State1 = State#gateway_state{bin = Remain},
-            try
-                case proto_mapping:decode(Proto, ProtoBin) of
-                    {error, Error} ->
-                        ?LOG_ERROR("~w", [Error]),
-                        State2 = close(State1),
-                        {stop, normal, State2};
-                    Msg when ProtoHead == ?M12 ->% gateway的协议
-                        %% 在本进程返回客户端, 省一个?MSG_GATEWAY_SEND_MSG1
-                        case catch gateway_12_handle:handle(Msg, State1) of
-                            ?M11_EC1(ErrorCode) ->
-                                CBin = gateway:pack(#game_s_error{proto = Proto, code = ErrorCode}),
-                                ranch_tcp:send(Socket, CBin),
-                                decode_bin(State1);
-                            {MsgList, #gateway_state{} = State2} ->
-                                lists:foreach(fun(CMsg) ->
-                                    CMsg1 = ?MATCH(CMsg, #game_s_error{}, CMsg#game_s_error{proto = Proto}, CMsg),
-                                    CBin = gateway:pack(CMsg1),
-                                    ranch_tcp:send(Socket, CBin)
-                                              end, MsgList),
-                                decode_bin(State2);
-                            Error ->
-                                ?LOG_ERROR("~w", [Error]),
-                                State2 = close(State1),
-                                {stop, normal, State2}
-                        end;
-                    Msg when is_pid(PlayerPid) ->% 玩家进程的协议
-                        plm_svr:cast(PlayerPid, ?MSG13_GATEWAY_PROTO1(Msg)),
-                        decode_bin(State1);
-                    _ ->
-                        CBin = gateway:pack(#game_s_error{proto = Proto, code = ?M11_EC_NOT_LOGIN}),
-                        ranch_tcp:send(Socket, CBin),
-                        decode_bin(State1)
-                end
-            catch
-                C:E:S ->
-                    ?LOG_ERROR("~w, ~w~n~w", [C, E, S]),
-                    ErrorState = close(State),
-                    {stop, normal, ErrorState}
-            end;
-        _ ->
-            {noreply, State#gateway_state{bin = Bin}}
+decode_bin(#gateway_state{bin = WarpProtoBin, player_pid = PlayerPid} = State) ->
+    try
+        #gateway_c_warp{proto = Proto, data = ProtoBin} = proto_mapping:decode(?M12_PROTO_C_WARP, WarpProtoBin),
+        case proto_mapping:decode(Proto, ProtoBin) of
+            {error, Error} ->
+                ?LOG_ERROR("~w", [Error]),
+                State2 = close(State),
+                {stop, State2};
+            Msg ->% 玩家进程的协议
+                plm_svr:cast_imm(PlayerPid, ?MSG13_GATEWAY_PROTO1(Msg)),
+                {ok, State}
+        end
+    catch
+        C:E:S ->
+            ?LOG_ERROR("~w, ~w~n~w", [C, E, S]),
+            ErrorState = close(State),
+            {stop, ErrorState}
     end.
 
 
-close(#gateway_state{socket = Socket} = State) ->
-    catch ranch_tcp:close(Socket),
+close(#gateway_state{} = State) ->
     State.

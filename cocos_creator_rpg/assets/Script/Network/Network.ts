@@ -1,18 +1,16 @@
+import { EventManager } from "../Event/EventManager";
+import { Event } from "../Event/EvnetDef"
+import { config } from "../Misc/Config";
 import * as Pb from "../Protobuf/Pb"
 import { proto2name, name2proto } from "../Protobuf/PbMapping"
-import { EventCtl} from "../Common/EventCtl";
-import { config } from "../Common/Config";
-import { Event } from "../Common/EvnetDef"
 
-const { ccclass, property } = cc._decorator;
-
-@ccclass
 export default class Network {
     static _ws: WebSocket = null;
     static _isReconnect: boolean = false;
 
     public static connect() {
         if (Network._ws != null) {
+            console.log("already connect")
             return
         }
         var ws = new WebSocket(config.ws.path);
@@ -20,10 +18,10 @@ export default class Network {
 
         ws.onopen = function (event) {
             if (Network._isReconnect) {
-                EventCtl.emit(Event.NetWork.reconnect, null);
+                EventManager.emit(Event.NetWork.reconnect, null);
             } else {
                 Network._isReconnect = true;
-                EventCtl.emit(Event.NetWork.connect, null);
+                EventManager.emit(Event.NetWork.connect, null);
             }
         };
         ws.onmessage = function (event) {
@@ -35,7 +33,7 @@ export default class Network {
                 // 解析协议
                 var msgName = proto2name[warpMsg.proto]
                 let msg = Pb[msgName].decode(warpMsg.data)
-                EventCtl.emit(msgName, msg)
+                EventManager.emit(msgName, msg)
                 console.log("receive ", msgName, msg)
             }
             fileReader.readAsArrayBuffer(data);
@@ -45,7 +43,7 @@ export default class Network {
         };
         ws.onclose = function (event) {
             Network._ws = null;
-            EventCtl.emit(Event.NetWork.disconnect, null);
+            EventManager.emit(Event.NetWork.disconnect, null);
         };
     }
 

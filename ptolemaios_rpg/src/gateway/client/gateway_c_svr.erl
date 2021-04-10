@@ -54,15 +54,30 @@ start_link(Ip, Port, Module, Args) ->
 %% @doc 发送一条协议到服务器
 -spec send_proto(pid(), gateway:proto()) -> any().
 send_proto(Pid, Msg) ->
-    plm_svr:cast(Pid, ?MSG12_SEND_MSG1(Msg)).
+    plm_svr:cast_imm(Pid, ?MSG12_SEND_MSG1(Msg)).
 
 %% @private
 init([Ip, Port, Module, Args]) ->
-    {ok, Socket} = gen_tcp:connect(Ip, Port, [{packet, raw}, binary, {active, true}]),
-    plm_svr:put(?PD12_C_SOCKET, Socket),
-    plm_svr:put(?PD12_C_BIN, <<>>),
-    plm_svr:put(?PD12_C_MODULE, Module),
-    ?DYM12_C_CB3(Module, init, [Args]).
+    {ok, Socket} = gun:open(Ip, Port),
+    {ok, http} = gun:await_up(Socket),
+    {ok, Config} = application:get_env(ptolemaios, gateway),
+    {_, Path} = lists:keyfind(path, 1, Config),
+    StreamRef = gun:ws_upgrade(Socket, Path, []),
+    receive
+        {gun_upgrade, Socket, StreamRef, _, _Headers} ->
+            _MRef = monitor(process, Socket),
+            plm_svr:put(?PD12_C_SOCKET, Socket),
+            plm_svr:put(?PD12_C_REF, StreamRef),
+            plm_svr:put(?PD12_C_MODULE, Module),
+            ?DYM12_C_CB3(Module, init, [Args]);
+        {gun_response, Socket, _, _, Status, Headers} ->
+            {stop, {ws_upgrade_failed, Status, Headers}};
+        {gun_error, Socket, StreamRef, Reason} ->
+            {stop, {ws_upgrade_failed, Reason}}
+    %% More clauses here as needed.
+    after 1000 ->
+        {stop, timeout}
+    end.
 
 %% @private
 handle_call(Request, From, State) ->
@@ -71,8 +86,9 @@ handle_call(Request, From, State) ->
 
 %% @private
 handle_cast(?MSG12_SEND_MSG1(Msg), State) ->
-    Bin = gateway:pack(Msg),
-    ranch_tcp:send(plm_svr:get(?PD12_C_SOCKET), Bin),
+    Bin = gateway:c_pack(Msg),
+    gun:ws_send(plm_svr:get(?PD12_C_SOCKET), {binary, Bin}),
+    ?LOG_NOTICE("send ~p ~p", [proto_mapping:proto(Msg), Msg]),
     {noreply, State};
 handle_cast(Request, State) ->
     Module = plm_svr:get(?PD12_C_MODULE),
@@ -80,22 +96,21 @@ handle_cast(Request, State) ->
 
 
 %% @private
-handle_info({tcp, _Socket, Data}, State) ->
-    Data1 = <<Data/binary, (plm_svr:get(?PD12_C_BIN))/binary>>,
-    case gateway:unpack(Data1) of
-        more ->
-            plm_svr:put(?PD12_C_BIN, Data1);
-        {ok, Msg, Remain} ->
+handle_info({gun_ws, _ConnPid, _StreamRef, {binary, WarpBin}}, State) ->
+    #gateway_s_warp{proto = Proto, data = Bin} = proto_mapping:decode(?M12_PROTO_S_WARP, WarpBin),
+    ?LOG_NOTICE("receive ~p ~p", [Proto, proto_mapping:decode(Proto, Bin)]),
+    {noreply, State};
+handle_info({'DOWN', _MRef, process, Socket, Reason} = Info, State) ->
+    case Socket == plm_svr:get(?PD12_C_SOCKET) of
+        true ->
+            ?DO_IF(Reason =/= normal, ?LOG_ERROR("~p", [Reason])),
+            {stop, normal, State};
+        _ ->
             Module = plm_svr:get(?PD12_C_MODULE),
-            plm_svr:put(?PD12_C_BIN, Remain),
-            ?DYM12_C_CB3(Module, handle_msg, [Msg, State]);
-        {error, _Error} ->
-            {noreply, State}
+            ?DYM12_C_CB3(Module, handle_info, [Info, State])
     end;
-handle_info({tcp_closed, _}, State) ->
+handle_info({gun_down, _, ws, closed, _, _}, State) ->
     {stop, normal, State};
-handle_info({tcp_error, _, Reason}, State) ->
-    {stop, Reason, State};
 handle_info(Info, State) ->
     Module = plm_svr:get(?PD12_C_MODULE),
     ?DYM12_C_CB3(Module, handle_info, [Info, State]).

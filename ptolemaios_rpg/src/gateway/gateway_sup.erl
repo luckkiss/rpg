@@ -17,10 +17,14 @@ start_link() ->
 init([]) ->
     {ok, Config} = application:get_env(ptolemaios, gateway),
     Port = proplists:get_value(port, Config),
-    ListenerSpec = ranch:child_spec(gateway, ranch_tcp, #{socket_opts => [{port, Port}]}, gateway_svr, []),
-    
+    {_, Path} = lists:keyfind(path, 1, Config),
+    Dispatch = cowboy_router:compile([
+        {'_', [{Path, gateway_svr, []}]}
+    ]),
+    {ok, _} = cowboy:start_clear(game,
+        [{port, Port}],
+        #{env => #{dispatch => Dispatch}}
+    ),
     {ok, {#{strategy => one_for_one,
         intensity => 5,
-        period => 30},
-        [#{id => gateway_c_sup, start => {gateway_c_sup, start_link, []}, type => supervisor}, ListenerSpec]}
-    }.
+        period => 30}, []}}.

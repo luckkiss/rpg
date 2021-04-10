@@ -52,19 +52,354 @@
 -export_type([]).
 
 %% message types
+-type battle_p_unit_info() :: #battle_p_unit_info{}.
 
--export_type([]).
+-type battle_c_all_unit() :: #battle_c_all_unit{}.
 
--spec encode_msg(_) -> no_return().
-encode_msg(Msg) -> encode_msg(Msg, dummy_name, []).
+-type battle_s_all_unit() :: #battle_s_all_unit{}.
 
--spec encode_msg(_,_) -> no_return().
+-type battle_s_update_unit() :: #battle_s_update_unit{}.
+
+-type battle_s_del_unit() :: #battle_s_del_unit{}.
+
+-type battle_c_skill() :: #battle_c_skill{}.
+
+-type battle_s_skill() :: #battle_s_skill{}.
+
+-type battle_s_hit() :: #battle_s_hit{}.
+
+-type battle_c_move_start() :: #battle_c_move_start{}.
+
+-type battle_s_move_start() :: #battle_s_move_start{}.
+
+-type battle_c_move_end() :: #battle_c_move_end{}.
+
+-type battle_s_move_end() :: #battle_s_move_end{}.
+
+-export_type(['battle_p_unit_info'/0, 'battle_c_all_unit'/0, 'battle_s_all_unit'/0, 'battle_s_update_unit'/0, 'battle_s_del_unit'/0, 'battle_c_skill'/0, 'battle_s_skill'/0, 'battle_s_hit'/0, 'battle_c_move_start'/0, 'battle_s_move_start'/0, 'battle_c_move_end'/0, 'battle_s_move_end'/0]).
+
+-spec encode_msg(#battle_p_unit_info{} | #battle_c_all_unit{} | #battle_s_all_unit{} | #battle_s_update_unit{} | #battle_s_del_unit{} | #battle_c_skill{} | #battle_s_skill{} | #battle_s_hit{} | #battle_c_move_start{} | #battle_s_move_start{} | #battle_c_move_end{} | #battle_s_move_end{}) -> binary().
+encode_msg(Msg) when tuple_size(Msg) >= 1 -> encode_msg(Msg, element(1, Msg), []).
+
+-spec encode_msg(#battle_p_unit_info{} | #battle_c_all_unit{} | #battle_s_all_unit{} | #battle_s_update_unit{} | #battle_s_del_unit{} | #battle_c_skill{} | #battle_s_skill{} | #battle_s_hit{} | #battle_c_move_start{} | #battle_s_move_start{} | #battle_c_move_end{} | #battle_s_move_end{}, atom() | list()) -> binary().
 encode_msg(Msg, MsgName) when is_atom(MsgName) -> encode_msg(Msg, MsgName, []);
-encode_msg(Msg, Opts) when tuple_size(Msg) >= 1, is_list(Opts) -> encode_msg(Msg, element(1, Msg), []).
+encode_msg(Msg, Opts) when tuple_size(Msg) >= 1, is_list(Opts) -> encode_msg(Msg, element(1, Msg), Opts).
 
--spec encode_msg(_,_,_) -> no_return().
-encode_msg(_Msg, _MsgName, _Opts) -> erlang:error({gpb_error, no_messages}).
+-spec encode_msg(#battle_p_unit_info{} | #battle_c_all_unit{} | #battle_s_all_unit{} | #battle_s_update_unit{} | #battle_s_del_unit{} | #battle_c_skill{} | #battle_s_skill{} | #battle_s_hit{} | #battle_c_move_start{} | #battle_s_move_start{} | #battle_c_move_end{} | #battle_s_move_end{}, atom(), list()) -> binary().
+encode_msg(Msg, MsgName, Opts) ->
+    case proplists:get_bool(verify, Opts) of
+        true -> verify_msg(Msg, MsgName, Opts);
+        false -> ok
+    end,
+    TrUserData = proplists:get_value(user_data, Opts),
+    case MsgName of
+        battle_p_unit_info -> encode_msg_battle_p_unit_info(id(Msg, TrUserData), TrUserData);
+        battle_c_all_unit -> encode_msg_battle_c_all_unit(id(Msg, TrUserData), TrUserData);
+        battle_s_all_unit -> encode_msg_battle_s_all_unit(id(Msg, TrUserData), TrUserData);
+        battle_s_update_unit -> encode_msg_battle_s_update_unit(id(Msg, TrUserData), TrUserData);
+        battle_s_del_unit -> encode_msg_battle_s_del_unit(id(Msg, TrUserData), TrUserData);
+        battle_c_skill -> encode_msg_battle_c_skill(id(Msg, TrUserData), TrUserData);
+        battle_s_skill -> encode_msg_battle_s_skill(id(Msg, TrUserData), TrUserData);
+        battle_s_hit -> encode_msg_battle_s_hit(id(Msg, TrUserData), TrUserData);
+        battle_c_move_start -> encode_msg_battle_c_move_start(id(Msg, TrUserData), TrUserData);
+        battle_s_move_start -> encode_msg_battle_s_move_start(id(Msg, TrUserData), TrUserData);
+        battle_c_move_end -> encode_msg_battle_c_move_end(id(Msg, TrUserData), TrUserData);
+        battle_s_move_end -> encode_msg_battle_s_move_end(id(Msg, TrUserData), TrUserData)
+    end.
 
+
+encode_msg_battle_p_unit_info(Msg, TrUserData) -> encode_msg_battle_p_unit_info(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_p_unit_info(#battle_p_unit_info{id = F1, name = F2, career = F3, x = F4, y = F5, face = F6}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    B2 = if F2 == undefined -> B1;
+            true ->
+                begin
+                    TrF2 = id(F2, TrUserData),
+                    case is_empty_string(TrF2) of
+                        true -> B1;
+                        false -> e_type_string(TrF2, <<B1/binary, 18>>, TrUserData)
+                    end
+                end
+         end,
+    B3 = if F3 == undefined -> B2;
+            true ->
+                begin
+                    TrF3 = id(F3, TrUserData),
+                    if TrF3 =:= 0 -> B2;
+                       true -> e_varint(TrF3, <<B2/binary, 24>>, TrUserData)
+                    end
+                end
+         end,
+    B4 = if F4 == undefined -> B3;
+            true ->
+                begin
+                    TrF4 = id(F4, TrUserData),
+                    if TrF4 =:= 0 -> B3;
+                       true -> e_type_int32(TrF4, <<B3/binary, 32>>, TrUserData)
+                    end
+                end
+         end,
+    B5 = if F5 == undefined -> B4;
+            true ->
+                begin
+                    TrF5 = id(F5, TrUserData),
+                    if TrF5 =:= 0 -> B4;
+                       true -> e_type_int32(TrF5, <<B4/binary, 40>>, TrUserData)
+                    end
+                end
+         end,
+    if F6 == undefined -> B5;
+       true ->
+           begin
+               TrF6 = id(F6, TrUserData),
+               if TrF6 =:= 0 -> B5;
+                  true -> e_type_int32(TrF6, <<B5/binary, 48>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_c_all_unit(_Msg, _TrUserData) -> <<>>.
+
+encode_msg_battle_s_all_unit(Msg, TrUserData) -> encode_msg_battle_s_all_unit(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_all_unit(#battle_s_all_unit{unit_list = F1}, Bin, TrUserData) ->
+    begin
+        TrF1 = id(F1, TrUserData),
+        if TrF1 == [] -> Bin;
+           true -> e_field_battle_s_all_unit_unit_list(TrF1, Bin, TrUserData)
+        end
+    end.
+
+encode_msg_battle_s_update_unit(Msg, TrUserData) -> encode_msg_battle_s_update_unit(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_update_unit(#battle_s_update_unit{unit = F1}, Bin, TrUserData) ->
+    if F1 == undefined -> Bin;
+       true ->
+           begin
+               TrF1 = id(F1, TrUserData),
+               if TrF1 =:= undefined -> Bin;
+                  true -> e_mfield_battle_s_update_unit_unit(TrF1, <<Bin/binary, 10>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_s_del_unit(Msg, TrUserData) -> encode_msg_battle_s_del_unit(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_del_unit(#battle_s_del_unit{id = F1}, Bin, TrUserData) ->
+    if F1 == undefined -> Bin;
+       true ->
+           begin
+               TrF1 = id(F1, TrUserData),
+               if TrF1 =:= 0 -> Bin;
+                  true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_c_skill(Msg, TrUserData) -> encode_msg_battle_c_skill(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_c_skill(#battle_c_skill{skill_id = F1, hit_list = F2}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    begin
+        TrF2 = id(F2, TrUserData),
+        if TrF2 == [] -> B1;
+           true -> e_field_battle_c_skill_hit_list(TrF2, B1, TrUserData)
+        end
+    end.
+
+encode_msg_battle_s_skill(Msg, TrUserData) -> encode_msg_battle_s_skill(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_skill(#battle_s_skill{skill_id = F1, id = F2}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    if F2 == undefined -> B1;
+       true ->
+           begin
+               TrF2 = id(F2, TrUserData),
+               if TrF2 =:= 0 -> B1;
+                  true -> e_varint(TrF2, <<B1/binary, 16>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_s_hit(Msg, TrUserData) -> encode_msg_battle_s_hit(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_hit(#battle_s_hit{hurt = F1, id = F2}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    if F2 == undefined -> B1;
+       true ->
+           begin
+               TrF2 = id(F2, TrUserData),
+               if TrF2 =:= 0 -> B1;
+                  true -> e_varint(TrF2, <<B1/binary, 16>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_c_move_start(Msg, TrUserData) -> encode_msg_battle_c_move_start(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_c_move_start(#battle_c_move_start{face = F1}, Bin, TrUserData) ->
+    if F1 == undefined -> Bin;
+       true ->
+           begin
+               TrF1 = id(F1, TrUserData),
+               if TrF1 =:= 0 -> Bin;
+                  true -> e_type_int32(TrF1, <<Bin/binary, 8>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_s_move_start(Msg, TrUserData) -> encode_msg_battle_s_move_start(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_move_start(#battle_s_move_start{id = F1, face = F2, x = F3, y = F4}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    B2 = if F2 == undefined -> B1;
+            true ->
+                begin
+                    TrF2 = id(F2, TrUserData),
+                    if TrF2 =:= 0 -> B1;
+                       true -> e_type_int32(TrF2, <<B1/binary, 16>>, TrUserData)
+                    end
+                end
+         end,
+    B3 = if F3 == undefined -> B2;
+            true ->
+                begin
+                    TrF3 = id(F3, TrUserData),
+                    if TrF3 =:= 0 -> B2;
+                       true -> e_type_int32(TrF3, <<B2/binary, 24>>, TrUserData)
+                    end
+                end
+         end,
+    if F4 == undefined -> B3;
+       true ->
+           begin
+               TrF4 = id(F4, TrUserData),
+               if TrF4 =:= 0 -> B3;
+                  true -> e_type_int32(TrF4, <<B3/binary, 32>>, TrUserData)
+               end
+           end
+    end.
+
+encode_msg_battle_c_move_end(_Msg, _TrUserData) -> <<>>.
+
+encode_msg_battle_s_move_end(Msg, TrUserData) -> encode_msg_battle_s_move_end(Msg, <<>>, TrUserData).
+
+
+encode_msg_battle_s_move_end(#battle_s_move_end{id = F1, face = F2, x = F3, y = F4}, Bin, TrUserData) ->
+    B1 = if F1 == undefined -> Bin;
+            true ->
+                begin
+                    TrF1 = id(F1, TrUserData),
+                    if TrF1 =:= 0 -> Bin;
+                       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+                    end
+                end
+         end,
+    B2 = if F2 == undefined -> B1;
+            true ->
+                begin
+                    TrF2 = id(F2, TrUserData),
+                    if TrF2 =:= 0 -> B1;
+                       true -> e_type_int32(TrF2, <<B1/binary, 16>>, TrUserData)
+                    end
+                end
+         end,
+    B3 = if F3 == undefined -> B2;
+            true ->
+                begin
+                    TrF3 = id(F3, TrUserData),
+                    if TrF3 =:= 0 -> B2;
+                       true -> e_type_int32(TrF3, <<B2/binary, 24>>, TrUserData)
+                    end
+                end
+         end,
+    if F4 == undefined -> B3;
+       true ->
+           begin
+               TrF4 = id(F4, TrUserData),
+               if TrF4 =:= 0 -> B3;
+                  true -> e_type_int32(TrF4, <<B3/binary, 32>>, TrUserData)
+               end
+           end
+    end.
+
+e_mfield_battle_s_all_unit_unit_list(Msg, Bin, TrUserData) ->
+    SubBin = encode_msg_battle_p_unit_info(Msg, <<>>, TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
+
+e_field_battle_s_all_unit_unit_list([Elem | Rest], Bin, TrUserData) ->
+    Bin2 = <<Bin/binary, 10>>,
+    Bin3 = e_mfield_battle_s_all_unit_unit_list(id(Elem, TrUserData), Bin2, TrUserData),
+    e_field_battle_s_all_unit_unit_list(Rest, Bin3, TrUserData);
+e_field_battle_s_all_unit_unit_list([], Bin, _TrUserData) -> Bin.
+
+e_mfield_battle_s_update_unit_unit(Msg, Bin, TrUserData) ->
+    SubBin = encode_msg_battle_p_unit_info(Msg, <<>>, TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
+
+e_field_battle_c_skill_hit_list(Elems, Bin, TrUserData) when Elems =/= [] ->
+    SubBin = e_pfield_battle_c_skill_hit_list(Elems, <<>>, TrUserData),
+    Bin2 = <<Bin/binary, 18>>,
+    Bin3 = e_varint(byte_size(SubBin), Bin2),
+    <<Bin3/binary, SubBin/binary>>;
+e_field_battle_c_skill_hit_list([], Bin, _TrUserData) -> Bin.
+
+e_pfield_battle_c_skill_hit_list([Value | Rest], Bin, TrUserData) ->
+    Bin2 = e_varint(id(Value, TrUserData), Bin, TrUserData),
+    e_pfield_battle_c_skill_hit_list(Rest, Bin2, TrUserData);
+e_pfield_battle_c_skill_hit_list([], Bin, _TrUserData) -> Bin.
 
 -compile({nowarn_unused_function,e_type_sint/3}).
 e_type_sint(Value, Bin, _TrUserData) when Value >= 0 -> e_varint(Value * 2, Bin);
@@ -136,37 +471,1097 @@ e_varint(N, Bin) ->
     Bin2 = <<Bin/binary, (N band 127 bor 128)>>,
     e_varint(N bsr 7, Bin2).
 
+is_empty_string("") -> true;
+is_empty_string(<<>>) -> true;
+is_empty_string(L) when is_list(L) -> not string_has_chars(L);
+is_empty_string(B) when is_binary(B) -> false.
 
--spec decode_msg(binary(), atom()) -> no_return().
-decode_msg(Bin, _MsgName) when is_binary(Bin) -> erlang:error({gpb_error, no_messages}).
-
--spec decode_msg(binary(), atom(), list()) -> no_return().
-decode_msg(Bin, _MsgName, _Opts) when is_binary(Bin) -> erlang:error({gpb_error, no_messages}).
-
-
-
-
-
--spec merge_msgs(_, _) -> no_return().
-merge_msgs(Prev, New) -> merge_msgs(Prev, New, []).
-
--spec merge_msgs(_, _, _) -> no_return().
-merge_msgs(_Prev, _New, _MsgNameOrOpts) -> erlang:error({gpb_error, no_messages}).
-
-merge_msgs(_Prev, _New, _MsgName, _Opts) -> erlang:error({gpb_error, no_messages}).
+string_has_chars([C | _]) when is_integer(C) -> true;
+string_has_chars([H | T]) ->
+    case string_has_chars(H) of
+        true -> true;
+        false -> string_has_chars(T)
+    end;
+string_has_chars(B) when is_binary(B), byte_size(B) =/= 0 -> true;
+string_has_chars(C) when is_integer(C) -> true;
+string_has_chars(<<>>) -> false;
+string_has_chars([]) -> false.
 
 
--spec verify_msg(_) -> no_return().
-verify_msg(Msg) -> verify_msg(Msg, []).
+decode_msg(Bin, MsgName) when is_binary(Bin) -> decode_msg(Bin, MsgName, []).
 
--spec verify_msg(_,_) -> no_return().
-verify_msg(Msg, _OptsOrMsgName) -> mk_type_error(not_a_known_message, Msg, []).
+decode_msg(Bin, MsgName, Opts) when is_binary(Bin) ->
+    TrUserData = proplists:get_value(user_data, Opts),
+    decode_msg_1_catch(Bin, MsgName, TrUserData).
+
+-ifdef('OTP_RELEASE').
+decode_msg_1_catch(Bin, MsgName, TrUserData) ->
+    try decode_msg_2_doit(MsgName, Bin, TrUserData)
+    catch Class:Reason:StackTrace -> error({gpb_error,{decoding_failure, {Bin, MsgName, {Class, Reason, StackTrace}}}})
+    end.
+-else.
+decode_msg_1_catch(Bin, MsgName, TrUserData) ->
+    try decode_msg_2_doit(MsgName, Bin, TrUserData)
+    catch Class:Reason ->
+        StackTrace = erlang:get_stacktrace(),
+        error({gpb_error,{decoding_failure, {Bin, MsgName, {Class, Reason, StackTrace}}}})
+    end.
+-endif.
+
+decode_msg_2_doit(battle_p_unit_info, Bin, TrUserData) -> id(decode_msg_battle_p_unit_info(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_c_all_unit, Bin, TrUserData) -> id(decode_msg_battle_c_all_unit(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_all_unit, Bin, TrUserData) -> id(decode_msg_battle_s_all_unit(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_update_unit, Bin, TrUserData) -> id(decode_msg_battle_s_update_unit(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_del_unit, Bin, TrUserData) -> id(decode_msg_battle_s_del_unit(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_c_skill, Bin, TrUserData) -> id(decode_msg_battle_c_skill(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_skill, Bin, TrUserData) -> id(decode_msg_battle_s_skill(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_hit, Bin, TrUserData) -> id(decode_msg_battle_s_hit(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_c_move_start, Bin, TrUserData) -> id(decode_msg_battle_c_move_start(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_move_start, Bin, TrUserData) -> id(decode_msg_battle_s_move_start(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_c_move_end, Bin, TrUserData) -> id(decode_msg_battle_c_move_end(Bin, TrUserData), TrUserData);
+decode_msg_2_doit(battle_s_move_end, Bin, TrUserData) -> id(decode_msg_battle_s_move_end(Bin, TrUserData), TrUserData).
 
 
--spec verify_msg(_,_,_) -> no_return().
-verify_msg(Msg, _MsgName, _Opts) -> mk_type_error(not_a_known_message, Msg, []).
+
+decode_msg_battle_p_unit_info(Bin, TrUserData) -> dfp_read_field_def_battle_p_unit_info(Bin, 0, 0, id(0, TrUserData), id(<<>>, TrUserData), id(0, TrUserData), id(0, TrUserData), id(0, TrUserData), id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_p_unit_info(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> d_field_battle_p_unit_info_id(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dfp_read_field_def_battle_p_unit_info(<<18, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> d_field_battle_p_unit_info_name(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dfp_read_field_def_battle_p_unit_info(<<24, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> d_field_battle_p_unit_info_career(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dfp_read_field_def_battle_p_unit_info(<<32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> d_field_battle_p_unit_info_x(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dfp_read_field_def_battle_p_unit_info(<<40, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> d_field_battle_p_unit_info_y(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dfp_read_field_def_battle_p_unit_info(<<48, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> d_field_battle_p_unit_info_face(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dfp_read_field_def_battle_p_unit_info(<<>>, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, _) -> #battle_p_unit_info{id = F@_1, name = F@_2, career = F@_3, x = F@_4, y = F@_5, face = F@_6};
+dfp_read_field_def_battle_p_unit_info(Other, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> dg_read_field_def_battle_p_unit_info(Other, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+dg_read_field_def_battle_p_unit_info(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 32 - 7 ->
+    dg_read_field_def_battle_p_unit_info(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+dg_read_field_def_battle_p_unit_info(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_p_unit_info_id(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+        18 -> d_field_battle_p_unit_info_name(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+        24 -> d_field_battle_p_unit_info_career(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+        32 -> d_field_battle_p_unit_info_x(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+        40 -> d_field_battle_p_unit_info_y(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+        48 -> d_field_battle_p_unit_info_face(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_p_unit_info(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+                1 -> skip_64_battle_p_unit_info(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+                2 -> skip_length_delimited_battle_p_unit_info(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+                3 -> skip_group_battle_p_unit_info(Rest, Key bsr 3, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+                5 -> skip_32_battle_p_unit_info(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_p_unit_info(<<>>, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, _) -> #battle_p_unit_info{id = F@_1, name = F@_2, career = F@_3, x = F@_4, y = F@_5, face = F@_6}.
+
+d_field_battle_p_unit_info_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 -> d_field_battle_p_unit_info_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+d_field_battle_p_unit_info_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_p_unit_info(RestF, 0, 0, NewFValue, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+d_field_battle_p_unit_info_name(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 -> d_field_battle_p_unit_info_name(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+d_field_battle_p_unit_info_name(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, F@_3, F@_4, F@_5, F@_6, TrUserData) ->
+    {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bytes:Len/binary, Rest2/binary>> = Rest, {id(binary:copy(Bytes), TrUserData), Rest2} end,
+    dfp_read_field_def_battle_p_unit_info(RestF, 0, 0, F@_1, NewFValue, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+d_field_battle_p_unit_info_career(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 -> d_field_battle_p_unit_info_career(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+d_field_battle_p_unit_info_career(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, _, F@_4, F@_5, F@_6, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_p_unit_info(RestF, 0, 0, F@_1, F@_2, NewFValue, F@_4, F@_5, F@_6, TrUserData).
+
+d_field_battle_p_unit_info_x(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 -> d_field_battle_p_unit_info_x(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+d_field_battle_p_unit_info_x(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, _, F@_5, F@_6, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_p_unit_info(RestF, 0, 0, F@_1, F@_2, F@_3, NewFValue, F@_5, F@_6, TrUserData).
+
+d_field_battle_p_unit_info_y(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 -> d_field_battle_p_unit_info_y(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+d_field_battle_p_unit_info_y(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, _, F@_6, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_p_unit_info(RestF, 0, 0, F@_1, F@_2, F@_3, F@_4, NewFValue, F@_6, TrUserData).
+
+d_field_battle_p_unit_info_face(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 -> d_field_battle_p_unit_info_face(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+d_field_battle_p_unit_info_face(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, _, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_p_unit_info(RestF, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, NewFValue, TrUserData).
+
+skip_varint_battle_p_unit_info(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> skip_varint_battle_p_unit_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+skip_varint_battle_p_unit_info(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> dfp_read_field_def_battle_p_unit_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+skip_length_delimited_battle_p_unit_info(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) when N < 57 ->
+    skip_length_delimited_battle_p_unit_info(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData);
+skip_length_delimited_battle_p_unit_info(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_p_unit_info(Rest2, 0, 0, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+skip_group_battle_p_unit_info(Bin, FNum, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_p_unit_info(Rest, 0, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+skip_32_battle_p_unit_info(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> dfp_read_field_def_battle_p_unit_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+skip_64_battle_p_unit_info(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData) -> dfp_read_field_def_battle_p_unit_info(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, TrUserData).
+
+decode_msg_battle_c_all_unit(Bin, TrUserData) -> dfp_read_field_def_battle_c_all_unit(Bin, 0, 0, TrUserData).
+
+dfp_read_field_def_battle_c_all_unit(<<>>, 0, 0, _) -> #battle_c_all_unit{};
+dfp_read_field_def_battle_c_all_unit(Other, Z1, Z2, TrUserData) -> dg_read_field_def_battle_c_all_unit(Other, Z1, Z2, TrUserData).
+
+dg_read_field_def_battle_c_all_unit(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_c_all_unit(Rest, N + 7, X bsl N + Acc, TrUserData);
+dg_read_field_def_battle_c_all_unit(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key band 7 of
+        0 -> skip_varint_battle_c_all_unit(Rest, 0, 0, TrUserData);
+        1 -> skip_64_battle_c_all_unit(Rest, 0, 0, TrUserData);
+        2 -> skip_length_delimited_battle_c_all_unit(Rest, 0, 0, TrUserData);
+        3 -> skip_group_battle_c_all_unit(Rest, Key bsr 3, 0, TrUserData);
+        5 -> skip_32_battle_c_all_unit(Rest, 0, 0, TrUserData)
+    end;
+dg_read_field_def_battle_c_all_unit(<<>>, 0, 0, _) -> #battle_c_all_unit{}.
+
+skip_varint_battle_c_all_unit(<<1:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> skip_varint_battle_c_all_unit(Rest, Z1, Z2, TrUserData);
+skip_varint_battle_c_all_unit(<<0:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_battle_c_all_unit(Rest, Z1, Z2, TrUserData).
+
+skip_length_delimited_battle_c_all_unit(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 57 -> skip_length_delimited_battle_c_all_unit(Rest, N + 7, X bsl N + Acc, TrUserData);
+skip_length_delimited_battle_c_all_unit(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_c_all_unit(Rest2, 0, 0, TrUserData).
+
+skip_group_battle_c_all_unit(Bin, FNum, Z2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_c_all_unit(Rest, 0, Z2, TrUserData).
+
+skip_32_battle_c_all_unit(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_battle_c_all_unit(Rest, Z1, Z2, TrUserData).
+
+skip_64_battle_c_all_unit(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_battle_c_all_unit(Rest, Z1, Z2, TrUserData).
+
+decode_msg_battle_s_all_unit(Bin, TrUserData) -> dfp_read_field_def_battle_s_all_unit(Bin, 0, 0, id([], TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_all_unit(<<10, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> d_field_battle_s_all_unit_unit_list(Rest, Z1, Z2, F@_1, TrUserData);
+dfp_read_field_def_battle_s_all_unit(<<>>, 0, 0, R1, TrUserData) -> #battle_s_all_unit{unit_list = lists_reverse(R1, TrUserData)};
+dfp_read_field_def_battle_s_all_unit(Other, Z1, Z2, F@_1, TrUserData) -> dg_read_field_def_battle_s_all_unit(Other, Z1, Z2, F@_1, TrUserData).
+
+dg_read_field_def_battle_s_all_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_all_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+dg_read_field_def_battle_s_all_unit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        10 -> d_field_battle_s_all_unit_unit_list(Rest, 0, 0, F@_1, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_all_unit(Rest, 0, 0, F@_1, TrUserData);
+                1 -> skip_64_battle_s_all_unit(Rest, 0, 0, F@_1, TrUserData);
+                2 -> skip_length_delimited_battle_s_all_unit(Rest, 0, 0, F@_1, TrUserData);
+                3 -> skip_group_battle_s_all_unit(Rest, Key bsr 3, 0, F@_1, TrUserData);
+                5 -> skip_32_battle_s_all_unit(Rest, 0, 0, F@_1, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_all_unit(<<>>, 0, 0, R1, TrUserData) -> #battle_s_all_unit{unit_list = lists_reverse(R1, TrUserData)}.
+
+d_field_battle_s_all_unit_unit_list(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> d_field_battle_s_all_unit_unit_list(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+d_field_battle_s_all_unit_unit_list(<<0:1, X:7, Rest/binary>>, N, Acc, Prev, TrUserData) ->
+    {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bs:Len/binary, Rest2/binary>> = Rest, {id(decode_msg_battle_p_unit_info(Bs, TrUserData), TrUserData), Rest2} end,
+    dfp_read_field_def_battle_s_all_unit(RestF, 0, 0, cons(NewFValue, Prev, TrUserData), TrUserData).
+
+skip_varint_battle_s_all_unit(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> skip_varint_battle_s_all_unit(Rest, Z1, Z2, F@_1, TrUserData);
+skip_varint_battle_s_all_unit(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_all_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_length_delimited_battle_s_all_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> skip_length_delimited_battle_s_all_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+skip_length_delimited_battle_s_all_unit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_all_unit(Rest2, 0, 0, F@_1, TrUserData).
+
+skip_group_battle_s_all_unit(Bin, FNum, Z2, F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_all_unit(Rest, 0, Z2, F@_1, TrUserData).
+
+skip_32_battle_s_all_unit(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_all_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_64_battle_s_all_unit(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_all_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+decode_msg_battle_s_update_unit(Bin, TrUserData) -> dfp_read_field_def_battle_s_update_unit(Bin, 0, 0, id(undefined, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_update_unit(<<10, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> d_field_battle_s_update_unit_unit(Rest, Z1, Z2, F@_1, TrUserData);
+dfp_read_field_def_battle_s_update_unit(<<>>, 0, 0, F@_1, _) -> #battle_s_update_unit{unit = F@_1};
+dfp_read_field_def_battle_s_update_unit(Other, Z1, Z2, F@_1, TrUserData) -> dg_read_field_def_battle_s_update_unit(Other, Z1, Z2, F@_1, TrUserData).
+
+dg_read_field_def_battle_s_update_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_update_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+dg_read_field_def_battle_s_update_unit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        10 -> d_field_battle_s_update_unit_unit(Rest, 0, 0, F@_1, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_update_unit(Rest, 0, 0, F@_1, TrUserData);
+                1 -> skip_64_battle_s_update_unit(Rest, 0, 0, F@_1, TrUserData);
+                2 -> skip_length_delimited_battle_s_update_unit(Rest, 0, 0, F@_1, TrUserData);
+                3 -> skip_group_battle_s_update_unit(Rest, Key bsr 3, 0, F@_1, TrUserData);
+                5 -> skip_32_battle_s_update_unit(Rest, 0, 0, F@_1, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_update_unit(<<>>, 0, 0, F@_1, _) -> #battle_s_update_unit{unit = F@_1}.
+
+d_field_battle_s_update_unit_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> d_field_battle_s_update_unit_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+d_field_battle_s_update_unit_unit(<<0:1, X:7, Rest/binary>>, N, Acc, Prev, TrUserData) ->
+    {NewFValue, RestF} = begin Len = X bsl N + Acc, <<Bs:Len/binary, Rest2/binary>> = Rest, {id(decode_msg_battle_p_unit_info(Bs, TrUserData), TrUserData), Rest2} end,
+    dfp_read_field_def_battle_s_update_unit(RestF,
+                                            0,
+                                            0,
+                                            if Prev == undefined -> NewFValue;
+                                               true -> merge_msg_battle_p_unit_info(Prev, NewFValue, TrUserData)
+                                            end,
+                                            TrUserData).
+
+skip_varint_battle_s_update_unit(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> skip_varint_battle_s_update_unit(Rest, Z1, Z2, F@_1, TrUserData);
+skip_varint_battle_s_update_unit(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_update_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_length_delimited_battle_s_update_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> skip_length_delimited_battle_s_update_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+skip_length_delimited_battle_s_update_unit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_update_unit(Rest2, 0, 0, F@_1, TrUserData).
+
+skip_group_battle_s_update_unit(Bin, FNum, Z2, F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_update_unit(Rest, 0, Z2, F@_1, TrUserData).
+
+skip_32_battle_s_update_unit(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_update_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_64_battle_s_update_unit(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_update_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+decode_msg_battle_s_del_unit(Bin, TrUserData) -> dfp_read_field_def_battle_s_del_unit(Bin, 0, 0, id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_del_unit(<<8, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> d_field_battle_s_del_unit_id(Rest, Z1, Z2, F@_1, TrUserData);
+dfp_read_field_def_battle_s_del_unit(<<>>, 0, 0, F@_1, _) -> #battle_s_del_unit{id = F@_1};
+dfp_read_field_def_battle_s_del_unit(Other, Z1, Z2, F@_1, TrUserData) -> dg_read_field_def_battle_s_del_unit(Other, Z1, Z2, F@_1, TrUserData).
+
+dg_read_field_def_battle_s_del_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_del_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+dg_read_field_def_battle_s_del_unit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_s_del_unit_id(Rest, 0, 0, F@_1, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_del_unit(Rest, 0, 0, F@_1, TrUserData);
+                1 -> skip_64_battle_s_del_unit(Rest, 0, 0, F@_1, TrUserData);
+                2 -> skip_length_delimited_battle_s_del_unit(Rest, 0, 0, F@_1, TrUserData);
+                3 -> skip_group_battle_s_del_unit(Rest, Key bsr 3, 0, F@_1, TrUserData);
+                5 -> skip_32_battle_s_del_unit(Rest, 0, 0, F@_1, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_del_unit(<<>>, 0, 0, F@_1, _) -> #battle_s_del_unit{id = F@_1}.
+
+d_field_battle_s_del_unit_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> d_field_battle_s_del_unit_id(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+d_field_battle_s_del_unit_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_del_unit(RestF, 0, 0, NewFValue, TrUserData).
+
+skip_varint_battle_s_del_unit(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> skip_varint_battle_s_del_unit(Rest, Z1, Z2, F@_1, TrUserData);
+skip_varint_battle_s_del_unit(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_del_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_length_delimited_battle_s_del_unit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> skip_length_delimited_battle_s_del_unit(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+skip_length_delimited_battle_s_del_unit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_del_unit(Rest2, 0, 0, F@_1, TrUserData).
+
+skip_group_battle_s_del_unit(Bin, FNum, Z2, F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_del_unit(Rest, 0, Z2, F@_1, TrUserData).
+
+skip_32_battle_s_del_unit(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_del_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_64_battle_s_del_unit(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_s_del_unit(Rest, Z1, Z2, F@_1, TrUserData).
+
+decode_msg_battle_c_skill(Bin, TrUserData) -> dfp_read_field_def_battle_c_skill(Bin, 0, 0, id(0, TrUserData), id([], TrUserData), TrUserData).
+
+dfp_read_field_def_battle_c_skill(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_battle_c_skill_skill_id(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_c_skill(<<18, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_pfield_battle_c_skill_hit_list(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_c_skill(<<16, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_battle_c_skill_hit_list(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_c_skill(<<>>, 0, 0, F@_1, R1, TrUserData) -> #battle_c_skill{skill_id = F@_1, hit_list = lists_reverse(R1, TrUserData)};
+dfp_read_field_def_battle_c_skill(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_battle_c_skill(Other, Z1, Z2, F@_1, F@_2, TrUserData).
+
+dg_read_field_def_battle_c_skill(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_c_skill(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+dg_read_field_def_battle_c_skill(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_c_skill_skill_id(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        18 -> d_pfield_battle_c_skill_hit_list(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        16 -> d_field_battle_c_skill_hit_list(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_c_skill(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                1 -> skip_64_battle_c_skill(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                2 -> skip_length_delimited_battle_c_skill(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                3 -> skip_group_battle_c_skill(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
+                5 -> skip_32_battle_c_skill(Rest, 0, 0, F@_1, F@_2, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_c_skill(<<>>, 0, 0, F@_1, R1, TrUserData) -> #battle_c_skill{skill_id = F@_1, hit_list = lists_reverse(R1, TrUserData)}.
+
+d_field_battle_c_skill_skill_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_battle_c_skill_skill_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_battle_c_skill_skill_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_c_skill(RestF, 0, 0, NewFValue, F@_2, TrUserData).
+
+d_field_battle_c_skill_hit_list(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_battle_c_skill_hit_list(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_battle_c_skill_hit_list(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, Prev, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_c_skill(RestF, 0, 0, F@_1, cons(NewFValue, Prev, TrUserData), TrUserData).
+
+d_pfield_battle_c_skill_hit_list(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_pfield_battle_c_skill_hit_list(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_pfield_battle_c_skill_hit_list(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, E, TrUserData) ->
+    Len = X bsl N + Acc,
+    <<PackedBytes:Len/binary, Rest2/binary>> = Rest,
+    NewSeq = d_packed_field_battle_c_skill_hit_list(PackedBytes, 0, 0, E, TrUserData),
+    dfp_read_field_def_battle_c_skill(Rest2, 0, 0, F@_1, NewSeq, TrUserData).
+
+d_packed_field_battle_c_skill_hit_list(<<1:1, X:7, Rest/binary>>, N, Acc, AccSeq, TrUserData) when N < 57 -> d_packed_field_battle_c_skill_hit_list(Rest, N + 7, X bsl N + Acc, AccSeq, TrUserData);
+d_packed_field_battle_c_skill_hit_list(<<0:1, X:7, Rest/binary>>, N, Acc, AccSeq, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    d_packed_field_battle_c_skill_hit_list(RestF, 0, 0, [NewFValue | AccSeq], TrUserData);
+d_packed_field_battle_c_skill_hit_list(<<>>, 0, 0, AccSeq, _) -> AccSeq.
+
+skip_varint_battle_c_skill(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_battle_c_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+skip_varint_battle_c_skill(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_c_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_length_delimited_battle_c_skill(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_battle_c_skill(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+skip_length_delimited_battle_c_skill(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_c_skill(Rest2, 0, 0, F@_1, F@_2, TrUserData).
+
+skip_group_battle_c_skill(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_c_skill(Rest, 0, Z2, F@_1, F@_2, TrUserData).
+
+skip_32_battle_c_skill(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_c_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_64_battle_c_skill(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_c_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+decode_msg_battle_s_skill(Bin, TrUserData) -> dfp_read_field_def_battle_s_skill(Bin, 0, 0, id(0, TrUserData), id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_skill(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_battle_s_skill_skill_id(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_s_skill(<<16, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_battle_s_skill_id(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_s_skill(<<>>, 0, 0, F@_1, F@_2, _) -> #battle_s_skill{skill_id = F@_1, id = F@_2};
+dfp_read_field_def_battle_s_skill(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_battle_s_skill(Other, Z1, Z2, F@_1, F@_2, TrUserData).
+
+dg_read_field_def_battle_s_skill(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_skill(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+dg_read_field_def_battle_s_skill(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_s_skill_skill_id(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        16 -> d_field_battle_s_skill_id(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_skill(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                1 -> skip_64_battle_s_skill(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                2 -> skip_length_delimited_battle_s_skill(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                3 -> skip_group_battle_s_skill(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
+                5 -> skip_32_battle_s_skill(Rest, 0, 0, F@_1, F@_2, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_skill(<<>>, 0, 0, F@_1, F@_2, _) -> #battle_s_skill{skill_id = F@_1, id = F@_2}.
+
+d_field_battle_s_skill_skill_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_battle_s_skill_skill_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_battle_s_skill_skill_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_skill(RestF, 0, 0, NewFValue, F@_2, TrUserData).
+
+d_field_battle_s_skill_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_battle_s_skill_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_battle_s_skill_id(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_skill(RestF, 0, 0, F@_1, NewFValue, TrUserData).
+
+skip_varint_battle_s_skill(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_battle_s_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+skip_varint_battle_s_skill(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_s_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_length_delimited_battle_s_skill(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_battle_s_skill(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+skip_length_delimited_battle_s_skill(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_skill(Rest2, 0, 0, F@_1, F@_2, TrUserData).
+
+skip_group_battle_s_skill(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_skill(Rest, 0, Z2, F@_1, F@_2, TrUserData).
+
+skip_32_battle_s_skill(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_s_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_64_battle_s_skill(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_s_skill(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+decode_msg_battle_s_hit(Bin, TrUserData) -> dfp_read_field_def_battle_s_hit(Bin, 0, 0, id(0, TrUserData), id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_hit(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_battle_s_hit_hurt(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_s_hit(<<16, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> d_field_battle_s_hit_id(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+dfp_read_field_def_battle_s_hit(<<>>, 0, 0, F@_1, F@_2, _) -> #battle_s_hit{hurt = F@_1, id = F@_2};
+dfp_read_field_def_battle_s_hit(Other, Z1, Z2, F@_1, F@_2, TrUserData) -> dg_read_field_def_battle_s_hit(Other, Z1, Z2, F@_1, F@_2, TrUserData).
+
+dg_read_field_def_battle_s_hit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_hit(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+dg_read_field_def_battle_s_hit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_s_hit_hurt(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        16 -> d_field_battle_s_hit_id(Rest, 0, 0, F@_1, F@_2, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_hit(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                1 -> skip_64_battle_s_hit(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                2 -> skip_length_delimited_battle_s_hit(Rest, 0, 0, F@_1, F@_2, TrUserData);
+                3 -> skip_group_battle_s_hit(Rest, Key bsr 3, 0, F@_1, F@_2, TrUserData);
+                5 -> skip_32_battle_s_hit(Rest, 0, 0, F@_1, F@_2, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_hit(<<>>, 0, 0, F@_1, F@_2, _) -> #battle_s_hit{hurt = F@_1, id = F@_2}.
+
+d_field_battle_s_hit_hurt(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_battle_s_hit_hurt(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_battle_s_hit_hurt(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_hit(RestF, 0, 0, NewFValue, F@_2, TrUserData).
+
+d_field_battle_s_hit_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> d_field_battle_s_hit_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+d_field_battle_s_hit_id(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_hit(RestF, 0, 0, F@_1, NewFValue, TrUserData).
+
+skip_varint_battle_s_hit(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> skip_varint_battle_s_hit(Rest, Z1, Z2, F@_1, F@_2, TrUserData);
+skip_varint_battle_s_hit(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_s_hit(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_length_delimited_battle_s_hit(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) when N < 57 -> skip_length_delimited_battle_s_hit(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, TrUserData);
+skip_length_delimited_battle_s_hit(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_hit(Rest2, 0, 0, F@_1, F@_2, TrUserData).
+
+skip_group_battle_s_hit(Bin, FNum, Z2, F@_1, F@_2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_hit(Rest, 0, Z2, F@_1, F@_2, TrUserData).
+
+skip_32_battle_s_hit(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_s_hit(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+skip_64_battle_s_hit(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, TrUserData) -> dfp_read_field_def_battle_s_hit(Rest, Z1, Z2, F@_1, F@_2, TrUserData).
+
+decode_msg_battle_c_move_start(Bin, TrUserData) -> dfp_read_field_def_battle_c_move_start(Bin, 0, 0, id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_c_move_start(<<8, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> d_field_battle_c_move_start_face(Rest, Z1, Z2, F@_1, TrUserData);
+dfp_read_field_def_battle_c_move_start(<<>>, 0, 0, F@_1, _) -> #battle_c_move_start{face = F@_1};
+dfp_read_field_def_battle_c_move_start(Other, Z1, Z2, F@_1, TrUserData) -> dg_read_field_def_battle_c_move_start(Other, Z1, Z2, F@_1, TrUserData).
+
+dg_read_field_def_battle_c_move_start(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_c_move_start(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+dg_read_field_def_battle_c_move_start(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_c_move_start_face(Rest, 0, 0, F@_1, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_c_move_start(Rest, 0, 0, F@_1, TrUserData);
+                1 -> skip_64_battle_c_move_start(Rest, 0, 0, F@_1, TrUserData);
+                2 -> skip_length_delimited_battle_c_move_start(Rest, 0, 0, F@_1, TrUserData);
+                3 -> skip_group_battle_c_move_start(Rest, Key bsr 3, 0, F@_1, TrUserData);
+                5 -> skip_32_battle_c_move_start(Rest, 0, 0, F@_1, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_c_move_start(<<>>, 0, 0, F@_1, _) -> #battle_c_move_start{face = F@_1}.
+
+d_field_battle_c_move_start_face(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> d_field_battle_c_move_start_face(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+d_field_battle_c_move_start_face(<<0:1, X:7, Rest/binary>>, N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_c_move_start(RestF, 0, 0, NewFValue, TrUserData).
+
+skip_varint_battle_c_move_start(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> skip_varint_battle_c_move_start(Rest, Z1, Z2, F@_1, TrUserData);
+skip_varint_battle_c_move_start(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_c_move_start(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_length_delimited_battle_c_move_start(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) when N < 57 -> skip_length_delimited_battle_c_move_start(Rest, N + 7, X bsl N + Acc, F@_1, TrUserData);
+skip_length_delimited_battle_c_move_start(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_c_move_start(Rest2, 0, 0, F@_1, TrUserData).
+
+skip_group_battle_c_move_start(Bin, FNum, Z2, F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_c_move_start(Rest, 0, Z2, F@_1, TrUserData).
+
+skip_32_battle_c_move_start(<<_:32, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_c_move_start(Rest, Z1, Z2, F@_1, TrUserData).
+
+skip_64_battle_c_move_start(<<_:64, Rest/binary>>, Z1, Z2, F@_1, TrUserData) -> dfp_read_field_def_battle_c_move_start(Rest, Z1, Z2, F@_1, TrUserData).
+
+decode_msg_battle_s_move_start(Bin, TrUserData) -> dfp_read_field_def_battle_s_move_start(Bin, 0, 0, id(0, TrUserData), id(0, TrUserData), id(0, TrUserData), id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_move_start(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_start_id(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_start(<<16, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_start_face(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_start(<<24, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_start_x(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_start(<<32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_start_y(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_start(<<>>, 0, 0, F@_1, F@_2, F@_3, F@_4, _) -> #battle_s_move_start{id = F@_1, face = F@_2, x = F@_3, y = F@_4};
+dfp_read_field_def_battle_s_move_start(Other, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dg_read_field_def_battle_s_move_start(Other, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+dg_read_field_def_battle_s_move_start(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_move_start(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dg_read_field_def_battle_s_move_start(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_s_move_start_id(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        16 -> d_field_battle_s_move_start_face(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        24 -> d_field_battle_s_move_start_x(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        32 -> d_field_battle_s_move_start_y(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_move_start(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                1 -> skip_64_battle_s_move_start(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                2 -> skip_length_delimited_battle_s_move_start(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                3 -> skip_group_battle_s_move_start(Rest, Key bsr 3, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                5 -> skip_32_battle_s_move_start(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_move_start(<<>>, 0, 0, F@_1, F@_2, F@_3, F@_4, _) -> #battle_s_move_start{id = F@_1, face = F@_2, x = F@_3, y = F@_4}.
+
+d_field_battle_s_move_start_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_start_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_start_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, F@_3, F@_4, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_move_start(RestF, 0, 0, NewFValue, F@_2, F@_3, F@_4, TrUserData).
+
+d_field_battle_s_move_start_face(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_start_face(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_start_face(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, F@_3, F@_4, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_s_move_start(RestF, 0, 0, F@_1, NewFValue, F@_3, F@_4, TrUserData).
+
+d_field_battle_s_move_start_x(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_start_x(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_start_x(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, _, F@_4, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_s_move_start(RestF, 0, 0, F@_1, F@_2, NewFValue, F@_4, TrUserData).
+
+d_field_battle_s_move_start_y(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_start_y(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_start_y(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, _, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_s_move_start(RestF, 0, 0, F@_1, F@_2, F@_3, NewFValue, TrUserData).
+
+skip_varint_battle_s_move_start(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> skip_varint_battle_s_move_start(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+skip_varint_battle_s_move_start(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dfp_read_field_def_battle_s_move_start(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_length_delimited_battle_s_move_start(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> skip_length_delimited_battle_s_move_start(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+skip_length_delimited_battle_s_move_start(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_move_start(Rest2, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_group_battle_s_move_start(Bin, FNum, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_move_start(Rest, 0, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_32_battle_s_move_start(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dfp_read_field_def_battle_s_move_start(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_64_battle_s_move_start(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dfp_read_field_def_battle_s_move_start(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+decode_msg_battle_c_move_end(Bin, TrUserData) -> dfp_read_field_def_battle_c_move_end(Bin, 0, 0, TrUserData).
+
+dfp_read_field_def_battle_c_move_end(<<>>, 0, 0, _) -> #battle_c_move_end{};
+dfp_read_field_def_battle_c_move_end(Other, Z1, Z2, TrUserData) -> dg_read_field_def_battle_c_move_end(Other, Z1, Z2, TrUserData).
+
+dg_read_field_def_battle_c_move_end(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_c_move_end(Rest, N + 7, X bsl N + Acc, TrUserData);
+dg_read_field_def_battle_c_move_end(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key band 7 of
+        0 -> skip_varint_battle_c_move_end(Rest, 0, 0, TrUserData);
+        1 -> skip_64_battle_c_move_end(Rest, 0, 0, TrUserData);
+        2 -> skip_length_delimited_battle_c_move_end(Rest, 0, 0, TrUserData);
+        3 -> skip_group_battle_c_move_end(Rest, Key bsr 3, 0, TrUserData);
+        5 -> skip_32_battle_c_move_end(Rest, 0, 0, TrUserData)
+    end;
+dg_read_field_def_battle_c_move_end(<<>>, 0, 0, _) -> #battle_c_move_end{}.
+
+skip_varint_battle_c_move_end(<<1:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> skip_varint_battle_c_move_end(Rest, Z1, Z2, TrUserData);
+skip_varint_battle_c_move_end(<<0:1, _:7, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_battle_c_move_end(Rest, Z1, Z2, TrUserData).
+
+skip_length_delimited_battle_c_move_end(<<1:1, X:7, Rest/binary>>, N, Acc, TrUserData) when N < 57 -> skip_length_delimited_battle_c_move_end(Rest, N + 7, X bsl N + Acc, TrUserData);
+skip_length_delimited_battle_c_move_end(<<0:1, X:7, Rest/binary>>, N, Acc, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_c_move_end(Rest2, 0, 0, TrUserData).
+
+skip_group_battle_c_move_end(Bin, FNum, Z2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_c_move_end(Rest, 0, Z2, TrUserData).
+
+skip_32_battle_c_move_end(<<_:32, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_battle_c_move_end(Rest, Z1, Z2, TrUserData).
+
+skip_64_battle_c_move_end(<<_:64, Rest/binary>>, Z1, Z2, TrUserData) -> dfp_read_field_def_battle_c_move_end(Rest, Z1, Z2, TrUserData).
+
+decode_msg_battle_s_move_end(Bin, TrUserData) -> dfp_read_field_def_battle_s_move_end(Bin, 0, 0, id(0, TrUserData), id(0, TrUserData), id(0, TrUserData), id(0, TrUserData), TrUserData).
+
+dfp_read_field_def_battle_s_move_end(<<8, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_end_id(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_end(<<16, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_end_face(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_end(<<24, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_end_x(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_end(<<32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> d_field_battle_s_move_end_y(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dfp_read_field_def_battle_s_move_end(<<>>, 0, 0, F@_1, F@_2, F@_3, F@_4, _) -> #battle_s_move_end{id = F@_1, face = F@_2, x = F@_3, y = F@_4};
+dfp_read_field_def_battle_s_move_end(Other, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dg_read_field_def_battle_s_move_end(Other, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+dg_read_field_def_battle_s_move_end(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 32 - 7 -> dg_read_field_def_battle_s_move_end(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+dg_read_field_def_battle_s_move_end(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+        8 -> d_field_battle_s_move_end_id(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        16 -> d_field_battle_s_move_end_face(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        24 -> d_field_battle_s_move_end_x(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        32 -> d_field_battle_s_move_end_y(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+        _ ->
+            case Key band 7 of
+                0 -> skip_varint_battle_s_move_end(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                1 -> skip_64_battle_s_move_end(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                2 -> skip_length_delimited_battle_s_move_end(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                3 -> skip_group_battle_s_move_end(Rest, Key bsr 3, 0, F@_1, F@_2, F@_3, F@_4, TrUserData);
+                5 -> skip_32_battle_s_move_end(Rest, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData)
+            end
+    end;
+dg_read_field_def_battle_s_move_end(<<>>, 0, 0, F@_1, F@_2, F@_3, F@_4, _) -> #battle_s_move_end{id = F@_1, face = F@_2, x = F@_3, y = F@_4}.
+
+d_field_battle_s_move_end_id(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_end_id(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_end_id(<<0:1, X:7, Rest/binary>>, N, Acc, _, F@_2, F@_3, F@_4, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData), Rest},
+    dfp_read_field_def_battle_s_move_end(RestF, 0, 0, NewFValue, F@_2, F@_3, F@_4, TrUserData).
+
+d_field_battle_s_move_end_face(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_end_face(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_end_face(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, _, F@_3, F@_4, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_s_move_end(RestF, 0, 0, F@_1, NewFValue, F@_3, F@_4, TrUserData).
+
+d_field_battle_s_move_end_x(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_end_x(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_end_x(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, _, F@_4, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_s_move_end(RestF, 0, 0, F@_1, F@_2, NewFValue, F@_4, TrUserData).
+
+d_field_battle_s_move_end_y(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> d_field_battle_s_move_end_y(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+d_field_battle_s_move_end_y(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, _, TrUserData) ->
+    {NewFValue, RestF} = {begin <<Res:32/signed-native>> = <<(X bsl N + Acc):32/unsigned-native>>, id(Res, TrUserData) end, Rest},
+    dfp_read_field_def_battle_s_move_end(RestF, 0, 0, F@_1, F@_2, F@_3, NewFValue, TrUserData).
+
+skip_varint_battle_s_move_end(<<1:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> skip_varint_battle_s_move_end(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData);
+skip_varint_battle_s_move_end(<<0:1, _:7, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dfp_read_field_def_battle_s_move_end(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_length_delimited_battle_s_move_end(<<1:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) when N < 57 -> skip_length_delimited_battle_s_move_end(Rest, N + 7, X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, TrUserData);
+skip_length_delimited_battle_s_move_end(<<0:1, X:7, Rest/binary>>, N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    dfp_read_field_def_battle_s_move_end(Rest2, 0, 0, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_group_battle_s_move_end(Bin, FNum, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    dfp_read_field_def_battle_s_move_end(Rest, 0, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_32_battle_s_move_end(<<_:32, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dfp_read_field_def_battle_s_move_end(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+skip_64_battle_s_move_end(<<_:64, Rest/binary>>, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) -> dfp_read_field_def_battle_s_move_end(Rest, Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData).
+
+read_group(Bin, FieldNum) ->
+    {NumBytes, EndTagLen} = read_gr_b(Bin, 0, 0, 0, 0, FieldNum),
+    <<Group:NumBytes/binary, _:EndTagLen/binary, Rest/binary>> = Bin,
+    {Group, Rest}.
+
+%% Like skipping over fields, but record the total length,
+%% Each field is <(FieldNum bsl 3) bor FieldType> ++ <FieldValue>
+%% Record the length because varints may be non-optimally encoded.
+%%
+%% Groups can be nested, but assume the same FieldNum cannot be nested
+%% because group field numbers are shared with the rest of the fields
+%% numbers. Thus we can search just for an group-end with the same
+%% field number.
+%%
+%% (The only time the same group field number could occur would
+%% be in a nested sub message, but then it would be inside a
+%% length-delimited entry, which we skip-read by length.)
+read_gr_b(<<1:1, X:7, Tl/binary>>, N, Acc, NumBytes, TagLen, FieldNum)
+  when N < (32-7) ->
+    read_gr_b(Tl, N+7, X bsl N + Acc, NumBytes, TagLen+1, FieldNum);
+read_gr_b(<<0:1, X:7, Tl/binary>>, N, Acc, NumBytes, TagLen,
+          FieldNum) ->
+    Key = X bsl N + Acc,
+    TagLen1 = TagLen + 1,
+    case {Key bsr 3, Key band 7} of
+        {FieldNum, 4} -> % 4 = group_end
+            {NumBytes, TagLen1};
+        {_, 0} -> % 0 = varint
+            read_gr_vi(Tl, 0, NumBytes + TagLen1, FieldNum);
+        {_, 1} -> % 1 = bits64
+            <<_:64, Tl2/binary>> = Tl,
+            read_gr_b(Tl2, 0, 0, NumBytes + TagLen1 + 8, 0, FieldNum);
+        {_, 2} -> % 2 = length_delimited
+            read_gr_ld(Tl, 0, 0, NumBytes + TagLen1, FieldNum);
+        {_, 3} -> % 3 = group_start
+            read_gr_b(Tl, 0, 0, NumBytes + TagLen1, 0, FieldNum);
+        {_, 4} -> % 4 = group_end
+            read_gr_b(Tl, 0, 0, NumBytes + TagLen1, 0, FieldNum);
+        {_, 5} -> % 5 = bits32
+            <<_:32, Tl2/binary>> = Tl,
+            read_gr_b(Tl2, 0, 0, NumBytes + TagLen1 + 4, 0, FieldNum)
+    end.
+
+read_gr_vi(<<1:1, _:7, Tl/binary>>, N, NumBytes, FieldNum)
+  when N < (64-7) ->
+    read_gr_vi(Tl, N+7, NumBytes+1, FieldNum);
+read_gr_vi(<<0:1, _:7, Tl/binary>>, _, NumBytes, FieldNum) ->
+    read_gr_b(Tl, 0, 0, NumBytes+1, 0, FieldNum).
+
+read_gr_ld(<<1:1, X:7, Tl/binary>>, N, Acc, NumBytes, FieldNum)
+  when N < (64-7) ->
+    read_gr_ld(Tl, N+7, X bsl N + Acc, NumBytes+1, FieldNum);
+read_gr_ld(<<0:1, X:7, Tl/binary>>, N, Acc, NumBytes, FieldNum) ->
+    Len = X bsl N + Acc,
+    NumBytes1 = NumBytes + 1,
+    <<_:Len/binary, Tl2/binary>> = Tl,
+    read_gr_b(Tl2, 0, 0, NumBytes1 + Len, 0, FieldNum).
+
+merge_msgs(Prev, New) when element(1, Prev) =:= element(1, New) -> merge_msgs(Prev, New, element(1, Prev), []).
+
+merge_msgs(Prev, New, MsgName) when is_atom(MsgName) -> merge_msgs(Prev, New, MsgName, []);
+merge_msgs(Prev, New, Opts) when element(1, Prev) =:= element(1, New), is_list(Opts) -> merge_msgs(Prev, New, element(1, Prev), Opts).
+
+merge_msgs(Prev, New, MsgName, Opts) ->
+    TrUserData = proplists:get_value(user_data, Opts),
+    case MsgName of
+        battle_p_unit_info -> merge_msg_battle_p_unit_info(Prev, New, TrUserData);
+        battle_c_all_unit -> merge_msg_battle_c_all_unit(Prev, New, TrUserData);
+        battle_s_all_unit -> merge_msg_battle_s_all_unit(Prev, New, TrUserData);
+        battle_s_update_unit -> merge_msg_battle_s_update_unit(Prev, New, TrUserData);
+        battle_s_del_unit -> merge_msg_battle_s_del_unit(Prev, New, TrUserData);
+        battle_c_skill -> merge_msg_battle_c_skill(Prev, New, TrUserData);
+        battle_s_skill -> merge_msg_battle_s_skill(Prev, New, TrUserData);
+        battle_s_hit -> merge_msg_battle_s_hit(Prev, New, TrUserData);
+        battle_c_move_start -> merge_msg_battle_c_move_start(Prev, New, TrUserData);
+        battle_s_move_start -> merge_msg_battle_s_move_start(Prev, New, TrUserData);
+        battle_c_move_end -> merge_msg_battle_c_move_end(Prev, New, TrUserData);
+        battle_s_move_end -> merge_msg_battle_s_move_end(Prev, New, TrUserData)
+    end.
+
+-compile({nowarn_unused_function,merge_msg_battle_p_unit_info/3}).
+merge_msg_battle_p_unit_info(#battle_p_unit_info{id = PFid, name = PFname, career = PFcareer, x = PFx, y = PFy, face = PFface}, #battle_p_unit_info{id = NFid, name = NFname, career = NFcareer, x = NFx, y = NFy, face = NFface}, _) ->
+    #battle_p_unit_info{id =
+                            if NFid =:= undefined -> PFid;
+                               true -> NFid
+                            end,
+                        name =
+                            if NFname =:= undefined -> PFname;
+                               true -> NFname
+                            end,
+                        career =
+                            if NFcareer =:= undefined -> PFcareer;
+                               true -> NFcareer
+                            end,
+                        x =
+                            if NFx =:= undefined -> PFx;
+                               true -> NFx
+                            end,
+                        y =
+                            if NFy =:= undefined -> PFy;
+                               true -> NFy
+                            end,
+                        face =
+                            if NFface =:= undefined -> PFface;
+                               true -> NFface
+                            end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_c_all_unit/3}).
+merge_msg_battle_c_all_unit(_Prev, New, _TrUserData) -> New.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_all_unit/3}).
+merge_msg_battle_s_all_unit(#battle_s_all_unit{unit_list = PFunit_list}, #battle_s_all_unit{unit_list = NFunit_list}, TrUserData) ->
+    #battle_s_all_unit{unit_list =
+                           if PFunit_list /= undefined, NFunit_list /= undefined -> 'erlang_++'(PFunit_list, NFunit_list, TrUserData);
+                              PFunit_list == undefined -> NFunit_list;
+                              NFunit_list == undefined -> PFunit_list
+                           end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_update_unit/3}).
+merge_msg_battle_s_update_unit(#battle_s_update_unit{unit = PFunit}, #battle_s_update_unit{unit = NFunit}, TrUserData) ->
+    #battle_s_update_unit{unit =
+                              if PFunit /= undefined, NFunit /= undefined -> merge_msg_battle_p_unit_info(PFunit, NFunit, TrUserData);
+                                 PFunit == undefined -> NFunit;
+                                 NFunit == undefined -> PFunit
+                              end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_del_unit/3}).
+merge_msg_battle_s_del_unit(#battle_s_del_unit{id = PFid}, #battle_s_del_unit{id = NFid}, _) ->
+    #battle_s_del_unit{id =
+                           if NFid =:= undefined -> PFid;
+                              true -> NFid
+                           end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_c_skill/3}).
+merge_msg_battle_c_skill(#battle_c_skill{skill_id = PFskill_id, hit_list = PFhit_list}, #battle_c_skill{skill_id = NFskill_id, hit_list = NFhit_list}, TrUserData) ->
+    #battle_c_skill{skill_id =
+                        if NFskill_id =:= undefined -> PFskill_id;
+                           true -> NFskill_id
+                        end,
+                    hit_list =
+                        if PFhit_list /= undefined, NFhit_list /= undefined -> 'erlang_++'(PFhit_list, NFhit_list, TrUserData);
+                           PFhit_list == undefined -> NFhit_list;
+                           NFhit_list == undefined -> PFhit_list
+                        end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_skill/3}).
+merge_msg_battle_s_skill(#battle_s_skill{skill_id = PFskill_id, id = PFid}, #battle_s_skill{skill_id = NFskill_id, id = NFid}, _) ->
+    #battle_s_skill{skill_id =
+                        if NFskill_id =:= undefined -> PFskill_id;
+                           true -> NFskill_id
+                        end,
+                    id =
+                        if NFid =:= undefined -> PFid;
+                           true -> NFid
+                        end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_hit/3}).
+merge_msg_battle_s_hit(#battle_s_hit{hurt = PFhurt, id = PFid}, #battle_s_hit{hurt = NFhurt, id = NFid}, _) ->
+    #battle_s_hit{hurt =
+                      if NFhurt =:= undefined -> PFhurt;
+                         true -> NFhurt
+                      end,
+                  id =
+                      if NFid =:= undefined -> PFid;
+                         true -> NFid
+                      end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_c_move_start/3}).
+merge_msg_battle_c_move_start(#battle_c_move_start{face = PFface}, #battle_c_move_start{face = NFface}, _) ->
+    #battle_c_move_start{face =
+                             if NFface =:= undefined -> PFface;
+                                true -> NFface
+                             end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_move_start/3}).
+merge_msg_battle_s_move_start(#battle_s_move_start{id = PFid, face = PFface, x = PFx, y = PFy}, #battle_s_move_start{id = NFid, face = NFface, x = NFx, y = NFy}, _) ->
+    #battle_s_move_start{id =
+                             if NFid =:= undefined -> PFid;
+                                true -> NFid
+                             end,
+                         face =
+                             if NFface =:= undefined -> PFface;
+                                true -> NFface
+                             end,
+                         x =
+                             if NFx =:= undefined -> PFx;
+                                true -> NFx
+                             end,
+                         y =
+                             if NFy =:= undefined -> PFy;
+                                true -> NFy
+                             end}.
+
+-compile({nowarn_unused_function,merge_msg_battle_c_move_end/3}).
+merge_msg_battle_c_move_end(_Prev, New, _TrUserData) -> New.
+
+-compile({nowarn_unused_function,merge_msg_battle_s_move_end/3}).
+merge_msg_battle_s_move_end(#battle_s_move_end{id = PFid, face = PFface, x = PFx, y = PFy}, #battle_s_move_end{id = NFid, face = NFface, x = NFx, y = NFy}, _) ->
+    #battle_s_move_end{id =
+                           if NFid =:= undefined -> PFid;
+                              true -> NFid
+                           end,
+                       face =
+                           if NFface =:= undefined -> PFface;
+                              true -> NFface
+                           end,
+                       x =
+                           if NFx =:= undefined -> PFx;
+                              true -> NFx
+                           end,
+                       y =
+                           if NFy =:= undefined -> PFy;
+                              true -> NFy
+                           end}.
 
 
+verify_msg(Msg) when tuple_size(Msg) >= 1 -> verify_msg(Msg, element(1, Msg), []);
+verify_msg(X) -> mk_type_error(not_a_known_message, X, []).
+
+verify_msg(Msg, MsgName) when is_atom(MsgName) -> verify_msg(Msg, MsgName, []);
+verify_msg(Msg, Opts) when tuple_size(Msg) >= 1 -> verify_msg(Msg, element(1, Msg), Opts);
+verify_msg(X, _Opts) -> mk_type_error(not_a_known_message, X, []).
+
+verify_msg(Msg, MsgName, Opts) ->
+    TrUserData = proplists:get_value(user_data, Opts),
+    case MsgName of
+        battle_p_unit_info -> v_msg_battle_p_unit_info(Msg, [MsgName], TrUserData);
+        battle_c_all_unit -> v_msg_battle_c_all_unit(Msg, [MsgName], TrUserData);
+        battle_s_all_unit -> v_msg_battle_s_all_unit(Msg, [MsgName], TrUserData);
+        battle_s_update_unit -> v_msg_battle_s_update_unit(Msg, [MsgName], TrUserData);
+        battle_s_del_unit -> v_msg_battle_s_del_unit(Msg, [MsgName], TrUserData);
+        battle_c_skill -> v_msg_battle_c_skill(Msg, [MsgName], TrUserData);
+        battle_s_skill -> v_msg_battle_s_skill(Msg, [MsgName], TrUserData);
+        battle_s_hit -> v_msg_battle_s_hit(Msg, [MsgName], TrUserData);
+        battle_c_move_start -> v_msg_battle_c_move_start(Msg, [MsgName], TrUserData);
+        battle_s_move_start -> v_msg_battle_s_move_start(Msg, [MsgName], TrUserData);
+        battle_c_move_end -> v_msg_battle_c_move_end(Msg, [MsgName], TrUserData);
+        battle_s_move_end -> v_msg_battle_s_move_end(Msg, [MsgName], TrUserData);
+        _ -> mk_type_error(not_a_known_message, Msg, [])
+    end.
+
+
+-compile({nowarn_unused_function,v_msg_battle_p_unit_info/3}).
+-dialyzer({nowarn_function,v_msg_battle_p_unit_info/3}).
+v_msg_battle_p_unit_info(#battle_p_unit_info{id = F1, name = F2, career = F3, x = F4, y = F5, face = F6}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [id | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_string(F2, [name | Path], TrUserData)
+    end,
+    if F3 == undefined -> ok;
+       true -> v_type_uint32(F3, [career | Path], TrUserData)
+    end,
+    if F4 == undefined -> ok;
+       true -> v_type_int32(F4, [x | Path], TrUserData)
+    end,
+    if F5 == undefined -> ok;
+       true -> v_type_int32(F5, [y | Path], TrUserData)
+    end,
+    if F6 == undefined -> ok;
+       true -> v_type_int32(F6, [face | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_p_unit_info(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_p_unit_info}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_c_all_unit/3}).
+-dialyzer({nowarn_function,v_msg_battle_c_all_unit/3}).
+v_msg_battle_c_all_unit(#battle_c_all_unit{}, _Path, _) -> ok;
+v_msg_battle_c_all_unit(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_c_all_unit}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_all_unit/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_all_unit/3}).
+v_msg_battle_s_all_unit(#battle_s_all_unit{unit_list = F1}, Path, TrUserData) ->
+    if is_list(F1) ->
+           _ = [v_msg_battle_p_unit_info(Elem, [unit_list | Path], TrUserData) || Elem <- F1],
+           ok;
+       true -> mk_type_error({invalid_list_of, {msg, battle_p_unit_info}}, F1, [unit_list | Path])
+    end,
+    ok;
+v_msg_battle_s_all_unit(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_all_unit}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_update_unit/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_update_unit/3}).
+v_msg_battle_s_update_unit(#battle_s_update_unit{unit = F1}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_msg_battle_p_unit_info(F1, [unit | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_s_update_unit(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_update_unit}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_del_unit/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_del_unit/3}).
+v_msg_battle_s_del_unit(#battle_s_del_unit{id = F1}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [id | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_s_del_unit(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_del_unit}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_c_skill/3}).
+-dialyzer({nowarn_function,v_msg_battle_c_skill/3}).
+v_msg_battle_c_skill(#battle_c_skill{skill_id = F1, hit_list = F2}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [skill_id | Path], TrUserData)
+    end,
+    if is_list(F2) ->
+           _ = [v_type_uint32(Elem, [hit_list | Path], TrUserData) || Elem <- F2],
+           ok;
+       true -> mk_type_error({invalid_list_of, uint32}, F2, [hit_list | Path])
+    end,
+    ok;
+v_msg_battle_c_skill(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_c_skill}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_skill/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_skill/3}).
+v_msg_battle_s_skill(#battle_s_skill{skill_id = F1, id = F2}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [skill_id | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_uint32(F2, [id | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_s_skill(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_skill}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_hit/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_hit/3}).
+v_msg_battle_s_hit(#battle_s_hit{hurt = F1, id = F2}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [hurt | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_uint32(F2, [id | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_s_hit(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_hit}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_c_move_start/3}).
+-dialyzer({nowarn_function,v_msg_battle_c_move_start/3}).
+v_msg_battle_c_move_start(#battle_c_move_start{face = F1}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_int32(F1, [face | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_c_move_start(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_c_move_start}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_move_start/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_move_start/3}).
+v_msg_battle_s_move_start(#battle_s_move_start{id = F1, face = F2, x = F3, y = F4}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [id | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_int32(F2, [face | Path], TrUserData)
+    end,
+    if F3 == undefined -> ok;
+       true -> v_type_int32(F3, [x | Path], TrUserData)
+    end,
+    if F4 == undefined -> ok;
+       true -> v_type_int32(F4, [y | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_s_move_start(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_move_start}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_c_move_end/3}).
+-dialyzer({nowarn_function,v_msg_battle_c_move_end/3}).
+v_msg_battle_c_move_end(#battle_c_move_end{}, _Path, _) -> ok;
+v_msg_battle_c_move_end(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_c_move_end}, X, Path).
+
+-compile({nowarn_unused_function,v_msg_battle_s_move_end/3}).
+-dialyzer({nowarn_function,v_msg_battle_s_move_end/3}).
+v_msg_battle_s_move_end(#battle_s_move_end{id = F1, face = F2, x = F3, y = F4}, Path, TrUserData) ->
+    if F1 == undefined -> ok;
+       true -> v_type_uint32(F1, [id | Path], TrUserData)
+    end,
+    if F2 == undefined -> ok;
+       true -> v_type_int32(F2, [face | Path], TrUserData)
+    end,
+    if F3 == undefined -> ok;
+       true -> v_type_int32(F3, [x | Path], TrUserData)
+    end,
+    if F4 == undefined -> ok;
+       true -> v_type_int32(F4, [y | Path], TrUserData)
+    end,
+    ok;
+v_msg_battle_s_move_end(X, Path, _TrUserData) -> mk_type_error({expected_msg, battle_s_move_end}, X, Path).
+
+-compile({nowarn_unused_function,v_type_int32/3}).
+-dialyzer({nowarn_function,v_type_int32/3}).
+v_type_int32(N, _Path, _TrUserData) when -2147483648 =< N, N =< 2147483647 -> ok;
+v_type_int32(N, Path, _TrUserData) when is_integer(N) -> mk_type_error({value_out_of_range, int32, signed, 32}, N, Path);
+v_type_int32(X, Path, _TrUserData) -> mk_type_error({bad_integer, int32, signed, 32}, X, Path).
+
+-compile({nowarn_unused_function,v_type_uint32/3}).
+-dialyzer({nowarn_function,v_type_uint32/3}).
+v_type_uint32(N, _Path, _TrUserData) when 0 =< N, N =< 4294967295 -> ok;
+v_type_uint32(N, Path, _TrUserData) when is_integer(N) -> mk_type_error({value_out_of_range, uint32, unsigned, 32}, N, Path);
+v_type_uint32(X, Path, _TrUserData) -> mk_type_error({bad_integer, uint32, unsigned, 32}, X, Path).
+
+-compile({nowarn_unused_function,v_type_string/3}).
+-dialyzer({nowarn_function,v_type_string/3}).
+v_type_string(S, Path, _TrUserData) when is_list(S); is_binary(S) ->
+    try unicode:characters_to_binary(S) of
+        B when is_binary(B) -> ok;
+        {error, _, _} -> mk_type_error(bad_unicode_string, S, Path)
+    catch
+        error:badarg -> mk_type_error(bad_unicode_string, S, Path)
+    end;
+v_type_string(X, Path, _TrUserData) -> mk_type_error(bad_unicode_string, X, Path).
 
 -compile({nowarn_unused_function,mk_type_error/3}).
 -spec mk_type_error(_, _, list()) -> no_return().
@@ -175,7 +1570,10 @@ mk_type_error(Error, ValueSeen, Path) ->
     erlang:error({gpb_type_error, {Error, [{value, ValueSeen}, {path, Path2}]}}).
 
 
-prettify_path([]) -> top_level.
+-compile({nowarn_unused_function,prettify_path/1}).
+-dialyzer({nowarn_function,prettify_path/1}).
+prettify_path([]) -> top_level;
+prettify_path(PathR) -> list_to_atom(lists:append(lists:join(".", lists:map(fun atom_to_list/1, lists:reverse(PathR))))).
 
 
 -compile({nowarn_unused_function,id/2}).
@@ -202,29 +1600,85 @@ cons(Elem, Acc, _TrUserData) -> [Elem | Acc].
 'erlang_++'(A, B, _TrUserData) -> A ++ B.
 
 
-get_msg_defs() -> [].
+get_msg_defs() ->
+    [{{msg, battle_p_unit_info},
+      [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+       #field{name = name, fnum = 2, rnum = 3, type = string, occurrence = optional, opts = []},
+       #field{name = career, fnum = 3, rnum = 4, type = uint32, occurrence = optional, opts = []},
+       #field{name = x, fnum = 4, rnum = 5, type = int32, occurrence = optional, opts = []},
+       #field{name = y, fnum = 5, rnum = 6, type = int32, occurrence = optional, opts = []},
+       #field{name = face, fnum = 6, rnum = 7, type = int32, occurrence = optional, opts = []}]},
+     {{msg, battle_c_all_unit}, []},
+     {{msg, battle_s_all_unit}, [#field{name = unit_list, fnum = 1, rnum = 2, type = {msg, battle_p_unit_info}, occurrence = repeated, opts = []}]},
+     {{msg, battle_s_update_unit}, [#field{name = unit, fnum = 1, rnum = 2, type = {msg, battle_p_unit_info}, occurrence = optional, opts = []}]},
+     {{msg, battle_s_del_unit}, [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}]},
+     {{msg, battle_c_skill}, [#field{name = skill_id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = hit_list, fnum = 2, rnum = 3, type = uint32, occurrence = repeated, opts = [packed]}]},
+     {{msg, battle_s_skill}, [#field{name = skill_id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = id, fnum = 2, rnum = 3, type = uint32, occurrence = optional, opts = []}]},
+     {{msg, battle_s_hit}, [#field{name = hurt, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = id, fnum = 2, rnum = 3, type = uint32, occurrence = optional, opts = []}]},
+     {{msg, battle_c_move_start}, [#field{name = face, fnum = 1, rnum = 2, type = int32, occurrence = optional, opts = []}]},
+     {{msg, battle_s_move_start},
+      [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+       #field{name = face, fnum = 2, rnum = 3, type = int32, occurrence = optional, opts = []},
+       #field{name = x, fnum = 3, rnum = 4, type = int32, occurrence = optional, opts = []},
+       #field{name = y, fnum = 4, rnum = 5, type = int32, occurrence = optional, opts = []}]},
+     {{msg, battle_c_move_end}, []},
+     {{msg, battle_s_move_end},
+      [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+       #field{name = face, fnum = 2, rnum = 3, type = int32, occurrence = optional, opts = []},
+       #field{name = x, fnum = 3, rnum = 4, type = int32, occurrence = optional, opts = []},
+       #field{name = y, fnum = 4, rnum = 5, type = int32, occurrence = optional, opts = []}]}].
 
 
-get_msg_names() -> [].
+get_msg_names() -> [battle_p_unit_info, battle_c_all_unit, battle_s_all_unit, battle_s_update_unit, battle_s_del_unit, battle_c_skill, battle_s_skill, battle_s_hit, battle_c_move_start, battle_s_move_start, battle_c_move_end, battle_s_move_end].
 
 
 get_group_names() -> [].
 
 
-get_msg_or_group_names() -> [].
+get_msg_or_group_names() ->
+    [battle_p_unit_info, battle_c_all_unit, battle_s_all_unit, battle_s_update_unit, battle_s_del_unit, battle_c_skill, battle_s_skill, battle_s_hit, battle_c_move_start, battle_s_move_start, battle_c_move_end, battle_s_move_end].
 
 
 get_enum_names() -> [].
 
 
--spec fetch_msg_def(_) -> no_return().
-fetch_msg_def(MsgName) -> erlang:error({no_such_msg, MsgName}).
+fetch_msg_def(MsgName) ->
+    case find_msg_def(MsgName) of
+        Fs when is_list(Fs) -> Fs;
+        error -> erlang:error({no_such_msg, MsgName})
+    end.
 
 
 -spec fetch_enum_def(_) -> no_return().
 fetch_enum_def(EnumName) -> erlang:error({no_such_enum, EnumName}).
 
 
+find_msg_def(battle_p_unit_info) ->
+    [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+     #field{name = name, fnum = 2, rnum = 3, type = string, occurrence = optional, opts = []},
+     #field{name = career, fnum = 3, rnum = 4, type = uint32, occurrence = optional, opts = []},
+     #field{name = x, fnum = 4, rnum = 5, type = int32, occurrence = optional, opts = []},
+     #field{name = y, fnum = 5, rnum = 6, type = int32, occurrence = optional, opts = []},
+     #field{name = face, fnum = 6, rnum = 7, type = int32, occurrence = optional, opts = []}];
+find_msg_def(battle_c_all_unit) -> [];
+find_msg_def(battle_s_all_unit) -> [#field{name = unit_list, fnum = 1, rnum = 2, type = {msg, battle_p_unit_info}, occurrence = repeated, opts = []}];
+find_msg_def(battle_s_update_unit) -> [#field{name = unit, fnum = 1, rnum = 2, type = {msg, battle_p_unit_info}, occurrence = optional, opts = []}];
+find_msg_def(battle_s_del_unit) -> [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}];
+find_msg_def(battle_c_skill) -> [#field{name = skill_id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = hit_list, fnum = 2, rnum = 3, type = uint32, occurrence = repeated, opts = [packed]}];
+find_msg_def(battle_s_skill) -> [#field{name = skill_id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = id, fnum = 2, rnum = 3, type = uint32, occurrence = optional, opts = []}];
+find_msg_def(battle_s_hit) -> [#field{name = hurt, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []}, #field{name = id, fnum = 2, rnum = 3, type = uint32, occurrence = optional, opts = []}];
+find_msg_def(battle_c_move_start) -> [#field{name = face, fnum = 1, rnum = 2, type = int32, occurrence = optional, opts = []}];
+find_msg_def(battle_s_move_start) ->
+    [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+     #field{name = face, fnum = 2, rnum = 3, type = int32, occurrence = optional, opts = []},
+     #field{name = x, fnum = 3, rnum = 4, type = int32, occurrence = optional, opts = []},
+     #field{name = y, fnum = 4, rnum = 5, type = int32, occurrence = optional, opts = []}];
+find_msg_def(battle_c_move_end) -> [];
+find_msg_def(battle_s_move_end) ->
+    [#field{name = id, fnum = 1, rnum = 2, type = uint32, occurrence = optional, opts = []},
+     #field{name = face, fnum = 2, rnum = 3, type = int32, occurrence = optional, opts = []},
+     #field{name = x, fnum = 3, rnum = 4, type = int32, occurrence = optional, opts = []},
+     #field{name = y, fnum = 4, rnum = 5, type = int32, occurrence = optional, opts = []}];
 find_msg_def(_) -> error.
 
 
@@ -283,11 +1737,33 @@ fqbins_to_service_and_rpc_name(S, R) -> error({gpb_error, {badservice_or_rpc, {S
 service_and_rpc_name_to_fqbins(S, R) -> error({gpb_error, {badservice_or_rpc, {S, R}}}).
 
 
--spec msg_name_to_fqbin(_) -> no_return().
+fqbin_to_msg_name(<<"battle_p_unit_info">>) -> battle_p_unit_info;
+fqbin_to_msg_name(<<"battle_c_all_unit">>) -> battle_c_all_unit;
+fqbin_to_msg_name(<<"battle_s_all_unit">>) -> battle_s_all_unit;
+fqbin_to_msg_name(<<"battle_s_update_unit">>) -> battle_s_update_unit;
+fqbin_to_msg_name(<<"battle_s_del_unit">>) -> battle_s_del_unit;
+fqbin_to_msg_name(<<"battle_c_skill">>) -> battle_c_skill;
+fqbin_to_msg_name(<<"battle_s_skill">>) -> battle_s_skill;
+fqbin_to_msg_name(<<"battle_s_hit">>) -> battle_s_hit;
+fqbin_to_msg_name(<<"battle_c_move_start">>) -> battle_c_move_start;
+fqbin_to_msg_name(<<"battle_s_move_start">>) -> battle_s_move_start;
+fqbin_to_msg_name(<<"battle_c_move_end">>) -> battle_c_move_end;
+fqbin_to_msg_name(<<"battle_s_move_end">>) -> battle_s_move_end;
 fqbin_to_msg_name(E) -> error({gpb_error, {badmsg, E}}).
 
 
--spec fqbin_to_msg_name(_) -> no_return().
+msg_name_to_fqbin(battle_p_unit_info) -> <<"battle_p_unit_info">>;
+msg_name_to_fqbin(battle_c_all_unit) -> <<"battle_c_all_unit">>;
+msg_name_to_fqbin(battle_s_all_unit) -> <<"battle_s_all_unit">>;
+msg_name_to_fqbin(battle_s_update_unit) -> <<"battle_s_update_unit">>;
+msg_name_to_fqbin(battle_s_del_unit) -> <<"battle_s_del_unit">>;
+msg_name_to_fqbin(battle_c_skill) -> <<"battle_c_skill">>;
+msg_name_to_fqbin(battle_s_skill) -> <<"battle_s_skill">>;
+msg_name_to_fqbin(battle_s_hit) -> <<"battle_s_hit">>;
+msg_name_to_fqbin(battle_c_move_start) -> <<"battle_c_move_start">>;
+msg_name_to_fqbin(battle_s_move_start) -> <<"battle_s_move_start">>;
+msg_name_to_fqbin(battle_c_move_end) -> <<"battle_c_move_end">>;
+msg_name_to_fqbin(battle_s_move_end) -> <<"battle_s_move_end">>;
 msg_name_to_fqbin(E) -> error({gpb_error, {badmsg, E}}).
 
 
@@ -326,7 +1802,8 @@ get_all_source_basenames() -> ["battle_14.proto"].
 get_all_proto_names() -> ["battle_14"].
 
 
-get_msg_containment("battle_14") -> [];
+get_msg_containment("battle_14") ->
+    [battle_c_all_unit, battle_c_move_end, battle_c_move_start, battle_c_skill, battle_p_unit_info, battle_s_all_unit, battle_s_del_unit, battle_s_hit, battle_s_move_end, battle_s_move_start, battle_s_skill, battle_s_update_unit];
 get_msg_containment(P) -> error({gpb_error, {badproto, P}}).
 
 
@@ -346,7 +1823,18 @@ get_enum_containment("battle_14") -> [];
 get_enum_containment(P) -> error({gpb_error, {badproto, P}}).
 
 
--spec get_proto_by_msg_name_as_fqbin(_) -> no_return().
+get_proto_by_msg_name_as_fqbin(<<"battle_s_update_unit">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_s_move_start">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_s_move_end">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_s_hit">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_s_del_unit">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_s_all_unit">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_c_move_start">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_c_move_end">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_c_all_unit">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_s_skill">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_c_skill">>) -> "battle_14";
+get_proto_by_msg_name_as_fqbin(<<"battle_p_unit_info">>) -> "battle_14";
 get_proto_by_msg_name_as_fqbin(E) -> error({gpb_error, {badmsg, E}}).
 
 

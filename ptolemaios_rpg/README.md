@@ -1,2 +1,8 @@
 # ptolemaios
-rpg game server
+erlang game server
+
+todo
+
+ptolemaios文档
+
+文档文档文档文档文档文档

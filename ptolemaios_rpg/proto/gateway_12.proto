@@ -11,6 +11,7 @@ message gateway_c_login {// 1201
 message gateway_p_role_info {
     uint32 id = 1;
     string name = 2;
+    uint32 career = 3;
 }
 
 message gateway_s_login {// 1202
@@ -30,6 +31,7 @@ message gateway_s_select_role {// 1204
 // 创建角色
 message gateway_c_create_role {// 1205
     string name = 1;
+    uint32 career = 2;
 }
 
 message gateway_s_create_role {// 1206
@@ -41,4 +43,27 @@ message gateway_c_heart {// 1207
 }
 
 message gateway_s_heart {// 1208
+}
+
+// warp
+message gateway_c_warp {// 1209
+    uint32 proto = 1;
+    bytes data = 2;
+}
+
+message gateway_s_warp {// 1210
+    uint32 proto = 1;
+    bytes data = 2;
+}
+
+// 退出角色
+message gateway_c_exit_role{// 1211
+}
+message gateway_s_exit_role{// 1212
+}
+
+// 退出登陆
+message gateway_c_exit_account{// 1213
+}
+message gateway_s_exit_account{// 1214
 }
