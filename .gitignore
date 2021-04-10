@@ -55,7 +55,6 @@ Thumbs.db
 # rebar3
 #//////////////////////////
 
-
 .rebar3
 _*
 .eunit
@@ -76,3 +75,4 @@ _build
 rebar3.crashdump
 *~
 rebar.lock
+dets
